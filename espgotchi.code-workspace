@@ -1,0 +1,27 @@
+{
+  "folders": [
+    {
+      "name": "Espgotchi",
+      "path": "."
+    },
+    {
+      "name": "Firmware (PlatformIO)",
+      "path": "firmware"
+    }
+  ],
+  "settings": {
+    // Langue par défaut pour les explications : FR
+    "editor.defaultFoldingRangeProvider": null,
+
+    // Quelques réglages globaux utiles
+    "files.exclude": {
+      "**/.pio": true
+    },
+
+    // (Optionnel) formatage C/C++
+    "[cpp]": {
+      "editor.tabSize": 2,
+      "editor.insertSpaces": true
+    }
+  }
+}
