@@ -2,6 +2,7 @@
 
 #include <Arduino.h>
 #include <TFT_eSPI.h>
+#include "UiLayout.h"   // NEW : constantes d'UI partagées
 
 extern "C"
 {
@@ -43,18 +44,6 @@ private:
   TFT_eSPI _tft; // propriété du service
 
   InputService *_input = nullptr;
-
-  // Layout / constantes écran
-  static constexpr int SCREEN_W = 320;
-  static constexpr int SCREEN_H = 240;
-  static constexpr int TOP_BAR_H = 28;
-  static constexpr int BOTTOM_BAR_H = 50;
-  static constexpr uint32_t RENDER_FPS = 12;
-
-  static constexpr int SPEED_BTN_W = 64;
-  static constexpr int SPEED_BTN_H = TOP_BAR_H;
-  static constexpr int SPEED_BTN_X = SCREEN_W - SPEED_BTN_W;
-  static constexpr int SPEED_BTN_Y = 0;
 
   // Buffers internes (équivalents aux statiques actuels)
   bool_t _matrix[LCD_HEIGHT][LCD_WIDTH / 8];

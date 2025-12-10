@@ -213,28 +213,6 @@ void VideoService::drawMonoBitmap16x9(int x, int y, const uint8_t *data, int sca
   }
 }
 
-// void VideoService::drawMonoBitmap16x9(int x, int y, const uint8_t *data, int scale)
-// {
-//   const int w = 16;
-//   const int h = 9;
-
-//   for (int j = 0; j < h; j++)
-//   {
-//     for (int i = 0; i < w; i++)
-//     {
-//       int bitIndex = j * w + i;
-//       int byteIndex = bitIndex / 8;
-//       int bitInByte = (bitIndex % 8); // LSB-first, comme ton code actuel
-
-//       bool on = (data[byteIndex] >> bitInByte) & 0x01;
-//       if (on)
-//       {
-//         _tft.fillRect(x + i * scale, y + j * scale, scale, scale, TFT_WHITE);
-//       }
-//     }
-//   }
-// }
-
 void VideoService::renderMenuBitmapsTopbar()
 {
   const int barH = TOP_BAR_H;
@@ -287,16 +265,20 @@ void VideoService::renderTouchButtonsBar()
   const int slotW = SCREEN_W / count;
 
   // On lit l'état via InputService (si dispo)
-  uint8_t held = 0;
+  LogicalButton held = LogicalButton::NONE;
   if (_input)
   {
-    held = _input->getHeld(); // 0 none, 1 left, 2 ok, 3 right
+    held = _input->getHeld(); // LEFT / OK / RIGHT / NONE
   }
 
   // Anti-flicker simple : redraw seulement si changement
-  static uint8_t lastHeld = 255;
-  if (held == lastHeld)
+  static bool first = true;
+  static LogicalButton lastHeld = LogicalButton::NONE;
+
+  if (!first && held == lastHeld)
     return;
+
+  first = false;
   lastHeld = held;
 
   _tft.fillRect(0, barY, SCREEN_W, barH, TFT_BLACK);
@@ -306,9 +288,9 @@ void VideoService::renderTouchButtonsBar()
     int x = i * slotW;
 
     bool isActive =
-        (held == 1 && i == 0) ||
-        (held == 2 && i == 1) ||
-        (held == 3 && i == 2);
+        (held == LogicalButton::LEFT && i == 0) ||
+        (held == LogicalButton::OK && i == 1) ||
+        (held == LogicalButton::RIGHT && i == 2);
 
     uint16_t fill = isActive ? TFT_DARKGREY : TFT_BLACK;
 
@@ -347,14 +329,13 @@ void VideoService::renderSpeedButtonTopbar()
 
   const int textH = 8 * 1; // hauteur d'un caractère en textSize=1
 
-  int tx = SPEED_BTN_X + 10;                             // on garde ton offset horizontal
-  int ty = SPEED_BTN_Y + (SPEED_BTN_H - textH) / 2;      // centrage vertical
+  int tx = SPEED_BTN_X + 10;                        // on garde ton offset horizontal
+  int ty = SPEED_BTN_Y + (SPEED_BTN_H - textH) / 2; // centrage vertical
 
   _tft.setCursor(tx, ty);
   _tft.print("SPD x");
   _tft.print(timeMult);
 }
-
 
 void VideoService::updateScreen()
 {
