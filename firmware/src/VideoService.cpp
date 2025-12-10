@@ -265,14 +265,14 @@ void VideoService::renderTouchButtonsBar()
   const int slotW = SCREEN_W / count;
 
   // On lit l'état via InputService (si dispo)
-  uint8_t held = 0;
+  LogicalButton held = LogicalButton::NONE;
   if (_input)
   {
-    held = _input->getHeld(); // 0 none, 1 left, 2 ok, 3 right
+    held = _input->getHeld(); // LEFT / OK / RIGHT / NONE
   }
 
   // Anti-flicker simple : redraw seulement si changement
-  static uint8_t lastHeld = 255;
+  static LogicalButton lastHeld = LogicalButton::NONE;
   if (held == lastHeld)
     return;
   lastHeld = held;
@@ -284,9 +284,9 @@ void VideoService::renderTouchButtonsBar()
     int x = i * slotW;
 
     bool isActive =
-        (held == 1 && i == 0) ||
-        (held == 2 && i == 1) ||
-        (held == 3 && i == 2);
+        (held == LogicalButton::LEFT  && i == 0) ||
+        (held == LogicalButton::OK    && i == 1) ||
+        (held == LogicalButton::RIGHT && i == 2);
 
     uint16_t fill = isActive ? TFT_DARKGREY : TFT_BLACK;
 

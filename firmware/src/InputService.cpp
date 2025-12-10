@@ -2,6 +2,12 @@
 
 void InputService::begin() {
   input.begin();
+
+  // Réinitialise l'état interne des taps
+  for (uint8_t i = 0; i < 8; ++i) {
+    _tapPending[i] = false;
+  }
+  _lastTouchDown = false;
 }
 
 void InputService::update() {
@@ -32,10 +38,16 @@ void InputService::update() {
   }
 }
 
-uint8_t InputService::getHeld() const {
+LogicalButton InputService::getHeld() const {
   VButton b = input.peekHeld();
   // enum class VButton : uint8_t { NONE = 0, LEFT, OK, RIGHT };
-  return static_cast<uint8_t>(b);
+
+  switch (b) {
+    case VButton::LEFT:  return LogicalButton::LEFT;
+    case VButton::OK:    return LogicalButton::OK;
+    case VButton::RIGHT: return LogicalButton::RIGHT;
+    default:             return LogicalButton::NONE;
+  }
 }
 
 uint8_t InputService::getLastTouch(uint16_t &x, uint16_t &y, uint8_t &down) const {
@@ -43,4 +55,18 @@ uint8_t InputService::getLastTouch(uint16_t &x, uint16_t &y, uint8_t &down) cons
   bool ok = input.getLastTouch(x, y, bDown);
   down = bDown ? 1 : 0;
   return ok ? 1 : 0;
+}
+
+bool InputService::consumeTap(LogicalButton b) {
+  uint8_t idx = static_cast<uint8_t>(b);
+  if (idx >= 8) {
+    return false;
+  }
+
+  if (_tapPending[idx]) {
+    _tapPending[idx] = false;
+    return true;
+  }
+
+  return false;
 }
