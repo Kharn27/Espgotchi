@@ -10,8 +10,7 @@ extern "C"
 }
 
 #include "VideoService.h"
-#include "EspgotchiInputC.h"
-#include "EspgotchiButtons.h"
+#include "InputService.h"
 #include "esp_timer.h"
 
 /**** Tama Setting ****/
@@ -23,6 +22,9 @@ extern "C"
 
 // Service vidéo
 static VideoService video;
+
+// Service input
+static InputService input;
 
 // time scaling (timeMult doit être visible par VideoService.cpp)
 uint8_t timeMult = 1; // 1,2,4,etc...
@@ -143,14 +145,15 @@ static void hal_play_frequency(bool_t en)
 // ---- Input / handler ----
 static int hal_handler(void)
 {
-  espgotchi_buttons_update();
+  // Met à jour l'input + map L/OK/R -> hw_set_button()
+  input.update();
 
   // Tap detection sur bouton vitesse
   static uint8_t lastDown = 0;
   uint16_t x = 0, y = 0;
   uint8_t down = 0;
 
-  if (espgotchi_input_get_last_touch(&x, &y, &down))
+  if (input.getLastTouch(x, y, down))
   {
     // front montant
     if (down && !lastDown)
@@ -174,7 +177,7 @@ static int hal_handler(void)
 
   // Log "edge" sur held (pas de spam)
   static uint8_t lastHeld = 0;
-  uint8_t held = espgotchi_input_peek_held();
+  uint8_t held = input.getHeld();
   if (held != lastHeld)
   {
     lastHeld = held;
@@ -210,8 +213,11 @@ void setup()
   delay(200);
 
   // Init touch + hw
-  espgotchi_input_begin();
+  input.begin();
   hw_init();
+
+  // Brancher InputService dans VideoService pour la barre de boutons
+  video.setInputService(&input);
 
   // Tout ce qui touche l'écran passe par VideoService
   video.initDisplay();

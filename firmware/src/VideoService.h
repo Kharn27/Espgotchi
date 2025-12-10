@@ -11,6 +11,8 @@ extern "C"
 #include "arduinogotchi_core/cpu.h"
 }
 
+class InputService;
+
 class VideoService
 {
 public:
@@ -26,6 +28,9 @@ public:
   void clearScreen();
   void showSplash(const char *text);
 
+  // Brancher l'input
+  void setInputService(InputService *input);
+
   // Hooks HAL
   void setLcdMatrix(u8_t x, u8_t y, bool_t val);
   void setLcdIcon(u8_t icon, bool_t val);
@@ -35,7 +40,9 @@ public:
   bool isInsideSpeedButton(uint16_t x, uint16_t y) const;
 
 private:
-  TFT_eSPI _tft;  // propriété du service
+  TFT_eSPI _tft; // propriété du service
+
+  InputService *_input = nullptr;
 
   // Layout / constantes écran
   static constexpr int SCREEN_W = 320;

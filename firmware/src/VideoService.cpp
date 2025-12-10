@@ -1,5 +1,5 @@
 #include "VideoService.h"
-#include "EspgotchiInputC.h"
+#include "InputService.h"
 #include "esp_timer.h"
 
 extern "C"
@@ -79,6 +79,11 @@ void VideoService::setLcdIcon(u8_t icon, bool_t val)
   {
     _icons[icon] = val;
   }
+}
+
+void VideoService::setInputService(InputService *input)
+{
+  _input = input;
 }
 
 uint32_t VideoService::hashMatrix() const
@@ -214,8 +219,14 @@ void VideoService::renderTouchButtonsBar()
   const int count = 3;
   const int slotW = SCREEN_W / count;
 
-  uint8_t held = espgotchi_input_peek_held();
+  // On lit l'état via InputService (si dispo)
+  uint8_t held = 0;
+  if (_input)
+  {
+    held = _input->getHeld(); // 0 none, 1 left, 2 ok, 3 right
+  }
 
+  // Anti-flicker simple : redraw seulement si changement
   static uint8_t lastHeld = 255;
   if (held == lastHeld)
     return;
