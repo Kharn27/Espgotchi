@@ -11,13 +11,12 @@ extern "C"
 
 #include "VideoService.h"
 #include "InputService.h"
+#include "AudioService.h"
 #include "TamaHost.h"
 #include "esp_timer.h"
 
 /**** Tama Setting ****/
 #define TAMA_DISPLAY_FRAMERATE 3
-#define BUZZER_PIN 26
-#define BUZZER_CH 0
 
 /**********************/
 
@@ -27,44 +26,24 @@ static VideoService video;
 // Service input
 static InputService input;
 
+// Service Audio
+static AudioService audio;
+
 // Service TamaHost
 static TamaHost host(video, input);
 
-// Audio
-static uint16_t current_freq = 0;
-
-static void buzzer_init()
-{
-  pinMode(BUZZER_PIN, OUTPUT);
-  ledcSetup(BUZZER_CH, 2000, 10);
-  ledcAttachPin(BUZZER_PIN, BUZZER_CH);
-  ledcWrite(BUZZER_CH, 0);
-}
-
-static void buzzer_play(uint32_t freq)
-{
-  if (freq == 0)
-  {
-    ledcWrite(BUZZER_CH, 0);
-    return;
-  }
-  ledcWriteTone(BUZZER_CH, freq);
-  ledcWrite(BUZZER_CH, 200);
-}
-
-static void buzzer_stop()
-{
-  ledcWrite(BUZZER_CH, 0);
-}
-
 // Glue audio utilisée par TamaHost
-void espgotchi_hal_set_frequency(u32_t freq) {
-  current_freq = (uint16_t)freq;
+void espgotchi_hal_set_frequency(u32_t freq)
+{
+  audio.setFrequency(freq);
 }
 
-void espgotchi_hal_play_frequency(bool_t en) {
-  if (en) buzzer_play(current_freq);
-  else    buzzer_stop();
+void espgotchi_hal_play_frequency(bool_t en)
+{
+  if (en)
+    audio.play();
+  else
+    audio.stop();
 }
 
 void setup()
@@ -88,16 +67,19 @@ void setup()
   delay(2500);
   video.clearScreen();
 
-  buzzer_init();
+  // Audio
+  audio.begin();
 
-  // test rapide
-  buzzer_play(880);
+  // petit test son (optionnel)
+  audio.setFrequency(880);
+  audio.play();
   delay(120);
-  buzzer_stop();
+  audio.stop();
   delay(80);
-  buzzer_play(1320);
+  audio.setFrequency(1320);
+  audio.play();
   delay(120);
-  buzzer_stop();
+  audio.stop();
 
   // Hôte TamaLIB (HAL, temps virtuel, handler, etc.)
   host.begin(TAMA_DISPLAY_FRAMERATE, 1000000);
