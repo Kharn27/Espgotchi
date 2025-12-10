@@ -3,6 +3,9 @@
 #include "InputService.h"
 #include "esp_timer.h"
 
+// pour le bouton debug centre écran
+extern void printHeapStats();
+
 // timeMult global pour VideoService + time scaling
 uint8_t timeMult = 1;
 
@@ -115,43 +118,49 @@ int TamaHost::handleHandler() {
   // 1) input -> hw_set_button()
   _input.update();
 
-  // 2) bouton SPD via touch
-  uint16_t x = 0, y = 0;
-  uint8_t down = 0;
+  // 2) bouton SPD (tap logique géré par InputService)
+  if (_input.consumeTap(LogicalButton::SPEED)) {
+    uint8_t next =
+        (timeMult == 1) ? 2 :
+        (timeMult == 2) ? 4 :
+        (timeMult == 4) ? 8 :
+                          1;
 
-  if (_input.getLastTouch(x, y, down)) {
-    if (down && !_lastTouchDown) {
-      bool inSpeed = _video.isInsideSpeedButton(x, y);
-      if (inSpeed) {
-        uint8_t next =
-            (timeMult == 1) ? 2 :
-            (timeMult == 2) ? 4 :
-            (timeMult == 4) ? 8 :
-                              1;
-
-        setTimeMult(next);
-        Serial.printf("[Time] Speed x%d\n", timeMult);
-      }
-    }
-    _lastTouchDown = down;
+    setTimeMult(next);
+    Serial.printf("[Time] Speed x%d\n", timeMult);
   }
 
-  // 3) log HELD propre
-  uint8_t held = _input.getHeld();
-  if (held != _lastHeldLogged) {
-    _lastHeldLogged = held;
-    if (held == 1)
-      Serial.println("[Input] HELD LEFT");
-    else if (held == 2)
-      Serial.println("[Input] HELD OK");
-    else if (held == 3)
-      Serial.println("[Input] HELD RIGHT");
-    else
-      Serial.println("[Input] HELD NONE");
+  // 3) bouton debug au centre de l'écran
+  if (_input.consumeTap(LogicalButton::DEBUG_CENTER)) {
+    printHeapStats();
+  }
+
+  // 4) log HELD propre (on utilise maintenant LogicalButton)
+  LogicalButton held = _input.getHeld();
+  uint8_t heldRaw = static_cast<uint8_t>(held);
+
+  if (heldRaw != _lastHeldLogged) {
+    _lastHeldLogged = heldRaw;
+
+    switch (held) {
+      case LogicalButton::LEFT:
+        Serial.println("[Input] HELD LEFT");
+        break;
+      case LogicalButton::OK:
+        Serial.println("[Input] HELD OK");
+        break;
+      case LogicalButton::RIGHT:
+        Serial.println("[Input] HELD RIGHT");
+        break;
+      default:
+        Serial.println("[Input] HELD NONE");
+        break;
+    }
   }
 
   return 0;
 }
+
 
 // -------- HAL statiques --------
 

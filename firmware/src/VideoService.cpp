@@ -7,6 +7,11 @@ extern "C"
 #include "arduinogotchi_core/bitmaps.h"
 }
 
+// Palette LCD : fond gris clair, segments foncés, cadre sombre
+static constexpr uint16_t LCD_COLOR_BG = TFT_LIGHTGREY;
+static constexpr uint16_t LCD_COLOR_PIXEL = TFT_BLACK;
+static constexpr uint16_t LCD_COLOR_FRAME = TFT_DARKGREY;
+
 // timeMult est défini dans TamaApp
 extern uint8_t timeMult;
 
@@ -128,7 +133,11 @@ void VideoService::renderMatrixToTft()
   int offX = availX + (availW - drawW) / 2;
   int offY = availY + (availH - drawH) / 2;
 
-  _tft.fillRect(offX - 2, offY - 2, drawW + 4, drawH + 4, TFT_BLACK);
+  // Cadre autour de l'écran LCD
+  _tft.fillRect(offX - 2, offY - 2, drawW + 4, drawH + 4, LCD_COLOR_FRAME);
+
+  // Fond LCD (pixels "éteints")
+  _tft.fillRect(offX, offY, drawW, drawH, LCD_COLOR_BG);
 
   for (int y = 0; y < LCD_HEIGHT; y++)
   {
@@ -140,7 +149,8 @@ void VideoService::renderMatrixToTft()
       {
         int px = offX + x * scale;
         int py = offY + y * scale;
-        _tft.fillRect(px, py, scale, scale, TFT_WHITE);
+        // Pixels "allumés" du LCD : segments foncés
+        _tft.fillRect(px, py, scale, scale, LCD_COLOR_PIXEL);
       }
     }
   }
@@ -151,18 +161,53 @@ void VideoService::drawMonoBitmap16x9(int x, int y, const uint8_t *data, int sca
   const int w = 16;
   const int h = 9;
 
+  // 1) On cherche les colonnes réellement utilisées (où au moins un pixel est à 1)
+  int minCol = w;
+  int maxCol = -1;
+
   for (int j = 0; j < h; j++)
   {
     for (int i = 0; i < w; i++)
     {
       int bitIndex = j * w + i;
       int byteIndex = bitIndex / 8;
-      int bitInByte = (bitIndex % 8); // LSB-first, comme ton code actuel
+      int bitInByte = bitIndex % 8;
 
       bool on = (data[byteIndex] >> bitInByte) & 0x01;
       if (on)
       {
-        _tft.fillRect(x + i * scale, y + j * scale, scale, scale, TFT_WHITE);
+        if (i < minCol)
+          minCol = i;
+        if (i > maxCol)
+          maxCol = i;
+      }
+    }
+  }
+
+  // 2) Calcul du décalage horizontal pour centrer la "vraie" largeur
+  int offsetX = 0;
+  if (maxCol >= minCol)
+  {
+    int activeWidth = maxCol - minCol + 1;
+    // Décalage = centrer activeWidth dans w, puis compenser minCol
+    offsetX = (w - activeWidth) / 2 - minCol;
+  }
+
+  // 3) Dessin des pixels avec ce décalage
+  for (int j = 0; j < h; j++)
+  {
+    for (int i = 0; i < w; i++)
+    {
+      int bitIndex = j * w + i;
+      int byteIndex = bitIndex / 8;
+      int bitInByte = bitIndex % 8;
+
+      bool on = (data[byteIndex] >> bitInByte) & 0x01;
+      if (on)
+      {
+        int drawX = x + (i + offsetX) * scale;
+        int drawY = y + j * scale;
+        _tft.fillRect(drawX, drawY, scale, scale, TFT_WHITE);
       }
     }
   }
@@ -199,7 +244,7 @@ void VideoService::renderMenuBitmapsTopbar()
     }
   }
 
-  // icônes
+  // icônes (boîte 16x9 centrée dans le slot)
   for (int i = 0; i < count; i++)
   {
     int centerX = i * slotW + slotW / 2;
@@ -220,16 +265,20 @@ void VideoService::renderTouchButtonsBar()
   const int slotW = SCREEN_W / count;
 
   // On lit l'état via InputService (si dispo)
-  uint8_t held = 0;
+  LogicalButton held = LogicalButton::NONE;
   if (_input)
   {
-    held = _input->getHeld(); // 0 none, 1 left, 2 ok, 3 right
+    held = _input->getHeld(); // LEFT / OK / RIGHT / NONE
   }
 
   // Anti-flicker simple : redraw seulement si changement
-  static uint8_t lastHeld = 255;
-  if (held == lastHeld)
+  static bool first = true;
+  static LogicalButton lastHeld = LogicalButton::NONE;
+
+  if (!first && held == lastHeld)
     return;
+
+  first = false;
   lastHeld = held;
 
   _tft.fillRect(0, barY, SCREEN_W, barH, TFT_BLACK);
@@ -239,9 +288,9 @@ void VideoService::renderTouchButtonsBar()
     int x = i * slotW;
 
     bool isActive =
-        (held == 1 && i == 0) ||
-        (held == 2 && i == 1) ||
-        (held == 3 && i == 2);
+        (held == LogicalButton::LEFT && i == 0) ||
+        (held == LogicalButton::OK && i == 1) ||
+        (held == LogicalButton::RIGHT && i == 2);
 
     uint16_t fill = isActive ? TFT_DARKGREY : TFT_BLACK;
 
@@ -269,15 +318,19 @@ void VideoService::renderSpeedButtonTopbar()
   uint16_t bg = TFT_BLACK;
   _tft.fillRect(SPEED_BTN_X, SPEED_BTN_Y, SPEED_BTN_W, SPEED_BTN_H, bg);
 
-  _tft.drawRect(SPEED_BTN_X + 2, SPEED_BTN_Y + 4,
-                SPEED_BTN_W - 4, SPEED_BTN_H - 8,
+  // Cadre qui va jusqu’à la ligne de séparation
+  _tft.drawRect(SPEED_BTN_X + 2, SPEED_BTN_Y + 2,
+                SPEED_BTN_W - 4, SPEED_BTN_H - 2,
                 TFT_DARKGREY);
 
+  // Texte taille 1, mais centré verticalement
   _tft.setTextSize(1);
   _tft.setTextColor(TFT_WHITE, bg);
 
-  int tx = SPEED_BTN_X + 10;
-  int ty = SPEED_BTN_Y + 9;
+  const int textH = 8 * 1; // hauteur d'un caractère en textSize=1
+
+  int tx = SPEED_BTN_X + 10;                        // on garde ton offset horizontal
+  int ty = SPEED_BTN_Y + (SPEED_BTN_H - textH) / 2; // centrage vertical
 
   _tft.setCursor(tx, ty);
   _tft.print("SPD x");
