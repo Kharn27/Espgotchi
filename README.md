@@ -33,7 +33,8 @@ Port **ESP32 CYD (Cheap Yellow Display)** d’**ArduinoGotchi** (émulation Tama
 - ✅ Anti-flicker amélioré avec :
   - **limitation FPS d’affichage**,
   - **hash matrice LCD** (skip si inchangé),
-  - redraw limité aux zones concernées.
+  - redraw limité aux zones concernées + delta pixel depuis le buffer précédent.
+- ✅ Tap caché au centre de l’écran pour afficher les stats heap/PSRAM (debug rapide).
 
 ---
 
@@ -68,7 +69,9 @@ firmware/
     VideoService.h/.cpp       # Backend vidéo ESP32 CYD (TFT_eSPI + layout)
     InputService.h/.cpp       # Backend input (tactile + hw_set_button)
     AudioService.h/.cpp       # Backend audio (LEDC + speaker)
+    UiLayout.h                # Dimensions communes (écran, barres, bouton SPD)
     TamaHost.h/.cpp           # HAL glue + temps virtuel + boucle TamaLIB
+    DebugUtils.cpp            # Utilitaires debug (heap/PSRAM)
 
     EspgotchiInput.h/.cpp     # Gestion low-level du touch (XPT2046)
     arduinogotchi_core/
