@@ -7,7 +7,8 @@ un port **ESP32 CYD** d’**ArduinoGotchi** (émulation Tamagotchi P1) basé sur
 - input tactile (XPT2046) via **InputService**
 - boutons virtuels L/OK/R + bouton SPD x1/x2/x4
 - audio via LEDC (speaker CYD) via **AudioService**
-- glue HAL + temps virtuel via **TamaHost** :contentReference[oaicite:0]{index=0}  
+- glue HAL + temps virtuel via **TamaHost** :contentReference[oaicite:0]{index=0}
+- constantes UI partagées (`UiLayout`) et helpers debug (heap/PSRAM)
 
 L’objectif de cette architecture est de **préserver le core d’émulation** et d’apporter les améliorations modernes via une couche de services bien séparés.
 
@@ -110,11 +111,12 @@ L’objectif de cette architecture est de **préserver le core d’émulation** 
 * expose :
 
   * `update()` → lit le tactile et met à jour `hw_set_button(BTN_*, PRESSED/RELEASED)` pour TamaLIB,
+  * détection **tap SPD** (top-right) + **tap debug** (centre écran) → placés dans une file `_tapPending[]`,
   * `getHeld()` → utilisé par le log et par `VideoService` pour la barre de boutons,
-  * `getLastTouch(...)` → utilisé par `TamaHost` pour détecter les taps sur le bouton SPD.
+  * `consumeTap(LogicalButton::SPEED/DEBUG_CENTER)` → consommé par `TamaHost`.
 
 > Les anciens wrappers C (`EspgotchiInputC`, `EspgotchiButtons`) ont été supprimés :
-> ils sont désormais remplacés par `InputService`, plus simple et typé C++. 
+> ils sont désormais remplacés par `InputService`, plus simple et typé C++.
 
 ---
 
@@ -144,8 +146,9 @@ L’objectif de cette architecture est de **préserver le core d’émulation** 
     * séparateur fin.
   * **Zone LCD** :
 
-    * scaling + centrage dans la zone centrale,
-    * redraw optimisé via **hash FNV** de la matrice pour éviter les frames identiques.
+    * scaling + centrage dans la zone centrale (constantes `UiLayout`),
+    * redraw optimisé via **hash FNV** de la matrice pour éviter les frames identiques,
+    * **delta pixel** : comparaison `_matrix` vs `_prevMatrix` pour ne redessiner que les pixels changés après le premier plein rendu.
   * **Bottom bar** :
 
     * 3 boutons visuels **L / OK / R**,
@@ -198,8 +201,9 @@ L’objectif de cette architecture est de **préserver le core d’émulation** 
 * `handler()` :
 
   * appelle `input.update()` → injection boutons CPU,
-  * lit `getLastTouch()` pour détecter les taps sur le bouton SPD,
+  * consomme les taps SPD/DEBUG détectés par `InputService`,
   * change `timeMult` en cycle (1 → 2 → 4 → 8 → 1),
+  * déclenche `printHeapStats()` sur tap debug au centre,
   * logge les transitions de `held` (LEFT / OK / RIGHT / NONE).
 * boucle :
 
@@ -219,12 +223,13 @@ EspgotchiInput (C++)
   - zones bottom: LEFT / OK / RIGHT
   - debounce + stable press
   - held + lastTouch(x,y,down)
+  - tap SPD (top-right) / tap debug centre
      |
      v
 InputService
   - update() -> hw_set_button(BTN_*, PRESSED/RELEASED)
+  - consumeTap(SPEED/DEBUG_CENTER) -> TamaHost (SPD + heap stats)
   - getHeld() -> VideoService (UI bas)
-  - getLastTouch() -> TamaHost (SPD tap)
      |
      v
 hw.c / cpu.c -> TamaLIB CPU pins
