@@ -41,9 +41,11 @@ void VideoService::initDisplay()
 void VideoService::begin()
 {
   memset(_matrix, 0, sizeof(_matrix));
+  memset(_prevMatrix, 0, sizeof(_prevMatrix));  // NEW
   memset(_icons, 0, sizeof(_icons));
   _lastRenderRealUs = 0;
   _lastMatrixHash = 0;
+  _firstMatrixRender = true;                    // NEW
 }
 
 void VideoService::clearScreen()
@@ -107,9 +109,12 @@ uint32_t VideoService::hashMatrix() const
 
 void VideoService::renderMatrixToTft()
 {
+  // Hash pour éviter de traiter si rien n'a changé
   uint32_t h = hashMatrix();
-  if (h == _lastMatrixHash)
+
+  if (!_firstMatrixRender && h == _lastMatrixHash)
   {
+    // Matrice identique à la dernière frame → rien à faire
     return;
   }
   _lastMatrixHash = h;
@@ -133,28 +138,45 @@ void VideoService::renderMatrixToTft()
   int offX = availX + (availW - drawW) / 2;
   int offY = availY + (availH - drawH) / 2;
 
-  // Cadre autour de l'écran LCD
-  _tft.fillRect(offX - 2, offY - 2, drawW + 4, drawH + 4, LCD_COLOR_FRAME);
+  // Au tout premier rendu : on dessine le cadre + le fond LCD complet
+  if (_firstMatrixRender)
+  {
+    // Cadre autour de l'écran LCD
+    _tft.fillRect(offX - 2, offY - 2, drawW + 4, drawH + 4, LCD_COLOR_FRAME);
 
-  // Fond LCD (pixels "éteints")
-  _tft.fillRect(offX, offY, drawW, drawH, LCD_COLOR_BG);
+    // Fond LCD (pixels "éteints")
+    _tft.fillRect(offX, offY, drawW, drawH, LCD_COLOR_BG);
 
+    _firstMatrixRender = false;
+  }
+
+  // Mise à jour pixel par pixel uniquement si changement par rapport à _prevMatrix
   for (int y = 0; y < LCD_HEIGHT; y++)
   {
     for (int x = 0; x < LCD_WIDTH; x++)
     {
       uint8_t mask = 0b10000000 >> (x % 8);
-      bool on = (_matrix[y][x / 8] & mask) != 0;
-      if (on)
-      {
-        int px = offX + x * scale;
-        int py = offY + y * scale;
-        // Pixels "allumés" du LCD : segments foncés
-        _tft.fillRect(px, py, scale, scale, LCD_COLOR_PIXEL);
-      }
+
+      bool curOn  = (_matrix[y][x / 8]     & mask) != 0;
+      bool prevOn = (_prevMatrix[y][x / 8] & mask) != 0;
+
+      // Pas de changement → on ne touche pas au TFT
+      if (curOn == prevOn)
+        continue;
+
+      int px = offX + x * scale;
+      int py = offY + y * scale;
+
+      uint16_t color = curOn ? LCD_COLOR_PIXEL : LCD_COLOR_BG;
+
+      _tft.fillRect(px, py, scale, scale, color);
     }
   }
+
+  // Sauvegarde de l'état courant pour la prochaine frame
+  memcpy(_prevMatrix, _matrix, sizeof(_matrix));
 }
+
 
 void VideoService::drawMonoBitmap16x9(int x, int y, const uint8_t *data, int scale)
 {
@@ -230,9 +252,35 @@ void VideoService::renderMenuBitmapsTopbar()
   int drawH = iconH * scale;
 
   int y = barY + (barH - drawH) / 2;
+  // --- Anti-flicker : ne redessiner que si _icons[] a changé ---
+  static bool first = true;
+  static bool lastIcons[ICON_NUM] = {0};
 
-  // Clear barre
-  _tft.fillRect(0, barY, SCREEN_W, barH, TFT_BLACK);
+  bool changed = first;
+  if (!first)
+  {
+    for (int i = 0; i < ICON_NUM; ++i)
+    {
+      if (lastIcons[i] != _icons[i])
+      {
+        changed = true;
+        break;
+      }
+    }
+  }
+
+  if (!changed)
+    return;
+
+  first = false;
+  for (int i = 0; i < ICON_NUM; ++i)
+  {
+    lastIcons[i] = _icons[i];
+  }
+  // -------------------------------------------------------------
+
+  // Clear barre (uniquement la zone des icônes)
+  _tft.fillRect(0, barY, iconsAreaW, barH, TFT_BLACK);
 
   // highlight slot sélectionné
   for (int i = 0; i < count; i++)
@@ -315,6 +363,19 @@ void VideoService::renderTouchButtonsBar()
 
 void VideoService::renderSpeedButtonTopbar()
 {
+  // --- Anti-flicker : ne redessiner que si timeMult change ---
+  static bool first = true;
+  static uint8_t lastTimeMult = 0;
+
+  if (!first && lastTimeMult == timeMult)
+  {
+    return;
+  }
+
+  first = false;
+  lastTimeMult = timeMult;
+  // -----------------------------------------------------------
+
   uint16_t bg = TFT_BLACK;
   _tft.fillRect(SPEED_BTN_X, SPEED_BTN_Y, SPEED_BTN_W, SPEED_BTN_H, bg);
 
@@ -329,13 +390,14 @@ void VideoService::renderSpeedButtonTopbar()
 
   const int textH = 8 * 1; // hauteur d'un caractère en textSize=1
 
-  int tx = SPEED_BTN_X + 10;                        // on garde ton offset horizontal
-  int ty = SPEED_BTN_Y + (SPEED_BTN_H - textH) / 2; // centrage vertical
+  int tx = SPEED_BTN_X + 10;
+  int ty = SPEED_BTN_Y + (SPEED_BTN_H - textH) / 2;
 
   _tft.setCursor(tx, ty);
   _tft.print("SPD x");
   _tft.print(timeMult);
 }
+
 
 void VideoService::updateScreen()
 {
