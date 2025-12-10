@@ -45,14 +45,18 @@ Port **ESP32 CYD (Cheap Yellow Display)** de **ArduinoGotchi** (émulation Tamag
 
 ---
 
-## 🗂️ Structure (suggestive)
+## 🗂️ Structure
 
 ```
 
 firmware/
 platformio.ini
 src/
-TamaApp_Headless.cpp   (app principale actuelle)
+AudioService.*         (LEDC, fréquence, mute/volume)
+VideoService.*         (layout TFT, throttle FPS, dirty flags)
+InputService.*         (bridge tactile, held, tap SPD)
+TamaHost.*             (HAL TamaLIB + time scaling)
+TamaApp_Headless.cpp   (composition des services)
 EspgotchiInput.*       (tactile + debouncing + zones)
 EspgotchiInputC.*      (bridge C)
 EspgotchiButtons.*     (pump held -> hw_set_button)
@@ -67,6 +71,8 @@ bitmaps.h
 ```
 
 > Le nom `TamaApp_Headless.cpp` a été conservé historiquement même si l’app n’est plus “headless”.
+
+L’architecture détaillée des services se trouve dans [`firmware/ARCHITECTURE.md`](firmware/ARCHITECTURE.md).
 
 ---
 
