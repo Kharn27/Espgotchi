@@ -16,7 +16,7 @@ Port **ESP32 CYD (Cheap Yellow Display)** de **ArduinoGotchi** (émulation Tamag
   - mapping tactile identique à la logique boutons du core.
 - ✅ **Injection propre des boutons** dans la CPU via `hw_set_button()`.
 - ✅ **Gestion du temps correcte** (fix du `CPU_SPEED_RATIO`) + timer ESP32 fiable.
-- ✅ **Bouton vitesse** **SPD x1 / x2 / x4** en haut à droite.
+- ✅ **Bouton vitesse** **SPD x1 / x2 / x4 / x8** en haut à droite.
   - implémentation **temps virtuel monotone** (pas de freeze lors de changements).
 - ✅ **Audio** via sortie **Speaker du CYD** (LEDC, généralement **GPIO 26**).
 - ✅ Anti-flicker amélioré avec :
@@ -48,26 +48,24 @@ Port **ESP32 CYD (Cheap Yellow Display)** de **ArduinoGotchi** (émulation Tamag
 ## 🗂️ Structure
 
 ```
-
 firmware/
-platformio.ini
-src/
-AudioService.*         (LEDC, fréquence, mute/volume)
-VideoService.*         (layout TFT, throttle FPS, dirty flags)
-InputService.*         (bridge tactile, held, tap SPD)
-TamaHost.*             (HAL TamaLIB + time scaling)
-TamaApp_Headless.cpp   (composition des services)
-EspgotchiInput.*       (tactile + debouncing + zones)
-EspgotchiInputC.*      (bridge C)
-EspgotchiButtons.*     (pump held -> hw_set_button)
-arduinogotchi_core/
-tamalib.*
-cpu.*
-hw.*
-hal.*
-rom_12bit.h
-bitmaps.h
-
+  platformio.ini
+  src/
+    AudioService.*         (LEDC, fréquence, mute/volume)
+    VideoService.*         (layout TFT, throttle FPS, dirty flags)
+    InputService.*         (bridge tactile, held, tap SPD)
+    TamaHost.*             (HAL TamaLIB + time scaling)
+    TamaApp_Headless.cpp   (composition et cycle de vie)
+    EspgotchiInput.*       (tactile + debouncing + zones)
+    EspgotchiInputC.*      (bridge C)
+    EspgotchiButtons.*     (pump held -> hw_set_button)
+    arduinogotchi_core/
+      tamalib.*
+      cpu.*
+      hw.*
+      hal.*
+      rom_12bit.h
+      bitmaps.h
 ```
 
 > Le nom `TamaApp_Headless.cpp` a été conservé historiquement même si l’app n’est plus “headless”.

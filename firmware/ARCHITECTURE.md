@@ -62,8 +62,14 @@ Ce document fusionne l’ancienne description d’architecture avec la nouvelle 
 
 ## Cadence & temps virtuel
 
-- `TamaHost` maintient un multiplicateur de temps monotone (x1, x2, x4) pour accélérer l’émulation.
+- `TamaHost` maintient un multiplicateur de temps monotone (x1, x2, x4, x8) pour accélérer l’émulation.
 - Le multiplicateur est injecté dans `VideoService` pour afficher l’étiquette SPD et dans le HAL pour `hal_timestamp_ms()`.
 - La boucle principale reste cadencée par `tamalib_mainloop_step_by_step()` afin de conserver les timings du P1.
+
+## Invariants techniques
+
+- Les buffers `matrix_buffer` et `icon_buffer` résident dans `TamaHost` et ne sont modifiés que via `hal_set_lcd_matrix` / `hal_set_lcd_icon`; `VideoService` lit ces buffers et déclenche le rendu en fonction des flags «dirty».
+- Seul `VideoService` est autorisé à dessiner des rectangles plein écran (clear + redraw localisés) afin de préserver l’anti-flicker et le throttling TFT ; les autres couches doivent passer par les callbacks HAL.
+- La source de vérité du multiplicateur de temps est `TamaHost::timeMult_`, ajustée via `setTimeMultiplier()` ; la fonction rebascule `baseVirtualUs_` lors d’un changement (x4 → x1, etc.) pour garantir un temps virtuel strictement monotone sans à-coups.
 
 Cette séparation garde la logique existante tout en rendant l’app maintenable pour des évolutions futures. Toute modification du HAL ou des périphériques doit être reflétée ici pour garder la documentation alignée.
