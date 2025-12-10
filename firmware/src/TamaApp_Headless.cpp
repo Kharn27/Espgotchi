@@ -11,6 +11,7 @@ extern "C"
 
 #include "VideoService.h"
 #include "InputService.h"
+#include "TamaHost.h"
 #include "esp_timer.h"
 
 /**** Tama Setting ****/
@@ -26,10 +27,8 @@ static VideoService video;
 // Service input
 static InputService input;
 
-// time scaling (timeMult doit être visible par VideoService.cpp)
-uint8_t timeMult = 1; // 1,2,4,etc...
-static uint64_t baseRealUs = 0;
-static uint64_t baseVirtualUs = 0;
+// Service TamaHost
+static TamaHost host(video, input);
 
 // Audio
 static uint16_t current_freq = 0;
@@ -58,154 +57,15 @@ static void buzzer_stop()
   ledcWrite(BUZZER_CH, 0);
 }
 
-// ---- HAL impl minimale ----
-static void hal_halt(void) {}
-
-static void hal_log(log_level_t level, char *buff, ...)
-{
-  // Simple log brut
-  Serial.println(buff);
-}
-
-static void set_time_mult(uint8_t newMult)
-{
-  uint64_t nowReal = (uint64_t)esp_timer_get_time();
-
-  // On "fige" le temps virtuel avec l'ancien multiplicateur
-  // baseVirtual += (deltaReal * oldMult)
-  uint64_t delta = nowReal - baseRealUs;
-  baseVirtualUs += delta * (uint64_t)timeMult;
-
-  // On rebase le point d’ancrage réel
-  baseRealUs = nowReal;
-
-  // On applique le nouveau multiplicateur
-  timeMult = newMult;
-}
-
-static timestamp_t hal_get_timestamp(void)
-{
-  uint64_t nowReal = (uint64_t)esp_timer_get_time();
-  uint64_t delta = nowReal - baseRealUs;
-  uint64_t virt = baseVirtualUs + delta * (uint64_t)timeMult;
-  return (timestamp_t)virt;
-}
-
-static void hal_sleep_until(timestamp_t ts)
-{
-  int64_t remaining = (int64_t)ts - (int64_t)hal_get_timestamp();
-  if (remaining <= 0)
-    return;
-
-  // Si on a beaucoup de marge, on utilise delay() pour éviter de bloquer en busy-wait
-  if (remaining >= 2000)
-  {
-    uint32_t ms = (uint32_t)(remaining / 1000);
-    if (ms > 0)
-      delay(ms);
-  }
-
-  // Finition fine
-  remaining = (int64_t)ts - (int64_t)hal_get_timestamp();
-  if (remaining > 0)
-  {
-    delayMicroseconds((uint32_t)remaining);
-  }
-}
-
-// ---- Vidéo : déléguée au service ----
-static void hal_update_screen(void)
-{
-  video.updateScreen();
-}
-
-static void hal_set_lcd_matrix(u8_t x, u8_t y, bool_t val)
-{
-  video.setLcdMatrix(x, y, val);
-}
-
-static void hal_set_lcd_icon(u8_t icon, bool_t val)
-{
-  video.setLcdIcon(icon, val);
-}
-
-static void hal_set_frequency(u32_t freq)
-{
+// Glue audio utilisée par TamaHost
+void espgotchi_hal_set_frequency(u32_t freq) {
   current_freq = (uint16_t)freq;
 }
 
-static void hal_play_frequency(bool_t en)
-{
-  if (en)
-    buzzer_play(current_freq);
-  else
-    buzzer_stop();
+void espgotchi_hal_play_frequency(bool_t en) {
+  if (en) buzzer_play(current_freq);
+  else    buzzer_stop();
 }
-
-// ---- Input / handler ----
-static int hal_handler(void)
-{
-  // Met à jour l'input + map L/OK/R -> hw_set_button()
-  input.update();
-
-  // Tap detection sur bouton vitesse
-  static uint8_t lastDown = 0;
-  uint16_t x = 0, y = 0;
-  uint8_t down = 0;
-
-  if (input.getLastTouch(x, y, down))
-  {
-    // front montant
-    if (down && !lastDown)
-    {
-      bool inSpeed = video.isInsideSpeedButton(x, y);
-
-      if (inSpeed)
-      {
-        uint8_t next =
-            (timeMult == 1) ? 2 : (timeMult == 2) ? 4
-                              : (timeMult == 4)   ? 8
-                                                  : 1;
-
-        set_time_mult(next);
-
-        Serial.printf("[Time] Speed x%d\n", timeMult);
-      }
-    }
-    lastDown = down;
-  }
-
-  // Log "edge" sur held (pas de spam)
-  static uint8_t lastHeld = 0;
-  uint8_t held = input.getHeld();
-  if (held != lastHeld)
-  {
-    lastHeld = held;
-    if (held == 1)
-      Serial.println("[Input] HELD LEFT");
-    else if (held == 2)
-      Serial.println("[Input] HELD OK");
-    else if (held == 3)
-      Serial.println("[Input] HELD RIGHT");
-    else
-      Serial.println("[Input] HELD NONE");
-  }
-
-  return 0;
-}
-
-static hal_t hal = {
-    .halt = &hal_halt,
-    .log = &hal_log,
-    .sleep_until = &hal_sleep_until,
-    .get_timestamp = &hal_get_timestamp,
-    .update_screen = &hal_update_screen,
-    .set_lcd_matrix = &hal_set_lcd_matrix,
-    .set_lcd_icon = &hal_set_lcd_icon,
-    .set_frequency = &hal_set_frequency,
-    .play_frequency = &hal_play_frequency,
-    .handler = &hal_handler,
-};
 
 void setup()
 {
@@ -216,16 +76,11 @@ void setup()
   input.begin();
   hw_init();
 
+  // Vidéo
   // Brancher InputService dans VideoService pour la barre de boutons
   video.setInputService(&input);
-
   // Tout ce qui touche l'écran passe par VideoService
   video.initDisplay();
-
-  baseRealUs = (uint64_t)esp_timer_get_time();
-  baseVirtualUs = 0;
-  timeMult = 1;
-
   video.begin();
 
   // Splash écran de boot
@@ -244,23 +99,13 @@ void setup()
   delay(120);
   buzzer_stop();
 
-  // Enregistre HAL et démarre tamalib
-  tamalib_register_hal(&hal);
-  tamalib_set_framerate(TAMA_DISPLAY_FRAMERATE);
-  tamalib_init(1000000);
+  // Hôte TamaLIB (HAL, temps virtuel, handler, etc.)
+  host.begin(TAMA_DISPLAY_FRAMERATE, 1000000);
 
   Serial.println("[Espgotchi] Step Refactoring Service started.");
 }
 
 void loop()
 {
-  tamalib_mainloop_step_by_step();
-
-  // Log léger pour confirmer que la boucle vit
-  static uint32_t last = 0;
-  if (millis() - last > 2000)
-  {
-    last = millis();
-    Serial.println("[Espgotchi] mainloop alive.");
-  }
+  host.loopOnce();
 }
