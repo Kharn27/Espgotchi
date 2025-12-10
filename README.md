@@ -1,7 +1,11 @@
-# Espgotchi 🥚✨  
-Port **ESP32 CYD (Cheap Yellow Display)** de **ArduinoGotchi** (émulation Tamagotchi P1 via TamaLIB), avec **UI tactile**, **rendu TFT**, **gestion du temps** et **audio LEDC**.
+# Espgotchi 🥚✨
 
-> Objectif : garder le cœur du P1 intact (ROM + TamaLIB), tout en modernisant l’expérience grâce au tactile et à l’écran couleur du CYD.
+Port **ESP32 CYD (Cheap Yellow Display)** de **ArduinoGotchi**  
+(émulation Tamagotchi P1 via **TamaLIB**), avec **UI tactile**, **rendu TFT**,  
+**gestion du temps** et **audio LEDC**.
+
+> Objectif : garder le cœur du P1 intact (ROM + TamaLIB),  
+> tout en modernisant l’expérience grâce au tactile et à l’écran couleur du CYD.
 
 ---
 
@@ -16,8 +20,8 @@ Port **ESP32 CYD (Cheap Yellow Display)** de **ArduinoGotchi** (émulation Tamag
   - mapping tactile identique à la logique boutons du core.
 - ✅ **Injection propre des boutons** dans la CPU via `hw_set_button()`.
 - ✅ **Gestion du temps correcte** (fix du `CPU_SPEED_RATIO`) + timer ESP32 fiable.
-- ✅ **Bouton vitesse** **SPD x1 / x2 / x4** en haut à droite.
-  - implémentation **temps virtuel monotone** (pas de freeze lors de changements).
+- ✅ **Bouton vitesse** **SPD x1 / x2 / x4** en haut à droite  
+  - implémentation **temps virtuel monotone** (pas de freeze lors des changements).
 - ✅ **Audio** via sortie **Speaker du CYD** (LEDC, généralement **GPIO 26**).
 - ✅ Anti-flicker amélioré avec :
   - **limitation FPS d’affichage**
@@ -47,26 +51,25 @@ Port **ESP32 CYD (Cheap Yellow Display)** de **ArduinoGotchi** (émulation Tamag
 
 ## 🗂️ Structure (suggestive)
 
-```
-
+```text
 firmware/
-platformio.ini
-src/
-TamaApp_Headless.cpp   (app principale actuelle)
-EspgotchiInput.*       (tactile + debouncing + zones)
-EspgotchiInputC.*      (bridge C)
-EspgotchiButtons.*     (pump held -> hw_set_button)
-arduinogotchi_core/
-tamalib.*
-cpu.*
-hw.*
-hal.*
-rom_12bit.h
-bitmaps.h
-
+  platformio.ini
+  src/
+    TamaApp_Headless.cpp      (app principale actuelle)
+    EspgotchiInput.*          (tactile + debouncing + zones)
+    EspgotchiInputC.*         (bridge C)
+    EspgotchiButtons.*        (pump held -> hw_set_button)
+    arduinogotchi_core/
+      tamalib.*
+      cpu.*
+      hw.*
+      hal.*
+      rom_12bit.h
+      bitmaps.h
 ```
 
-> Le nom `TamaApp_Headless.cpp` a été conservé historiquement même si l’app n’est plus “headless”.
+> Le nom `TamaApp_Headless.cpp` a été conservé historiquement
+> même si l’app n’est plus “headless”.
 
 ---
 
@@ -120,7 +123,7 @@ build_flags =
 lib_deps =
   bodmer/TFT_eSPI @ ^2.5.43
   https://github.com/PaulStoffregen/XPT2046_Touchscreen.git
-````
+```
 
 ### 2) Compiler
 
@@ -148,7 +151,7 @@ pio device monitor
 
 La ROM convertie doit être disponible dans :
 
-```
+```text
 firmware/src/arduinogotchi_core/rom_12bit.h
 ```
 
@@ -179,7 +182,7 @@ Correctif appliqué :
 ESP32 n’utilise pas `tone()` AVR.
 Le son est géré via **LEDC**, piloté par cette chaîne :
 
-```
+```text
 hw_set_buzzer_freq -> g_hal->set_frequency
 hw_enable_buzzer   -> g_hal->play_frequency
 ```
@@ -193,42 +196,6 @@ Implémentation côté app :
 * `hal_play_frequency()`
 
 Sortie speaker CYD courante : **GPIO 26**.
-
----
-
-## 🧩 Architecture logique
-
-### 1) Input tactile
-
-* Mapping du touch validé via calibration min/max.
-* Zones :
-
-  * bas écran découpé en 3 tiers : LEFT / OK / RIGHT
-* Debounce + stable press.
-
-### 2) Bridge C
-
-Pour que le core C reste “propre” :
-
-* `espgotchi_input_*()`
-* `espgotchi_buttons_update()`
-
-  * lit `held`
-  * appelle `hw_set_button()`.
-
-### 3) UI
-
-* Top bar : icônes menu ArduinoGotchi (render XBM 16×9).
-* Bouton vitesse SPD à droite.
-* LCD P1 rendu agrandi au centre.
-* 3 boutons tactiles visibles en bas.
-
-### 4) Time scaling
-
-* Temps virtuel **monotone** :
-
-  * pas de saut en arrière
-  * pas de freeze lors du retour x4 -> x1.
 
 ---
 
@@ -246,14 +213,14 @@ Cette version est considérée comme **base stable** :
 
 ## 🛣️ Roadmap (idées)
 
-* 🎯 **Tactile “smart”** :
+* 🎯 **Tactile “smart”**
 
   * tap direct sur icônes (macro d’injection L/OK)
   * swipe pour navigation rapide.
-* 🌄 **Background dynamique** :
+* 🌄 **Background dynamique**
 
   * fond jour/nuit selon l’heure.
-* 🧹 Refacto propre :
+* 🧹 Refacto propre
 
   * `VideoService`, `AudioService`, `InputService`, `TamaHost`.
 * 🧪 Mode debug UI toggleable.
@@ -272,420 +239,6 @@ Cette version est considérée comme **base stable** :
 
 ## 📜 Licence
 
-Ce projet réutilise des composants sous licence open-source (dont GPL côté core).
-Vérifier et respecter les licences d’origine lors de la redistribution.
-
----
-
-Voici un schéma **ASCII/Markdown** que tu peux coller tel quel dans ton README (ou dans un `docs/ARCHITECTURE.md`). J’ai fait en mode “capitalisation maximale” : flux data, modules, dépendances, et points d’extension.
-
----
-## 🧱 Architecture (vue d’ensemble)
-
-```
-+---------------------------------------------------------------+
-|                         Espgotchi App                          |
-|                 (TamaApp_Headless.cpp actuel)                  |
-|                                                               |
-|  +-------------------+     +-------------------+               |
-|  |   Video Layer     |     |   Audio Layer     |               |
-|  | (TFT_eSPI render) |     | (LEDC Speaker)    |               |
-|  +---------+---------+     +---------+---------+               |
-|            |                         |                         |
-|            v                         v                         |
-|  +-------------------+     +-------------------+               |
-|  |  UI Composition   |     |  Audio Backend    |               |
-|  | - Top bar icons   |     | - buzzer_init     |               |
-|  | - SPD button      |     | - buzzer_play     |               |
-|  | - LCD matrix      |     | - buzzer_stop     |               |
-|  | - 3 touch buttons |     +-------------------+               |
-|  +---------+---------+                                       |
-|            |                                                 |
-+------------|-------------------------------------------------+
-|
-v
-+---------------------------------------------------------------+
-|                         HAL Glue Layer                        |
-|                 (implémentation hal_t côté ESP32)             |
-|                                                               |
-|  halt/log/sleep/get_ts/update_screen/set_matrix/set_icon/...  |
-|                                                               |
-|  - hal_get_timestamp()  -> temps virtuel monotone + SPD x1/2/4|
-|  - hal_sleep_until()    -> cadence réelle                     |
-|  - hal_update_screen()  -> Video Layer                        |
-|  - hal_set_frequency()  -> current_freq                       |
-|  - hal_play_frequency() -> Audio Layer                        |
-|  - hal_handler()        -> Input pump + SPD tap               |
-+------------------------------+--------------------------------+
-|
-v
-+---------------------------------------------------------------+
-|                          TamaLIB Core                         |
-|     (porté depuis ArduinoGotchi / TamaLIB + ROM 12-bit)       |
-|                                                               |
-|  tamalib_init() / tamalib_mainloop_step_by_step()             |
-|      |                                                        |
-|      | calls g_hal->...                                       |
-|      v                                                        |
-|  - LCD matrix writes -> hal_set_lcd_matrix()                   |
-|  - Icon updates     -> hal_set_lcd_icon()                     |
-|  - Buzzer control   -> hal_set_frequency()/play_frequency()   |
-|  - Timing requests  -> hal_sleep_until()/get_timestamp()      |
-|  - Input check      -> CPU pins via hw_set_button()           |
-+------------------------------+--------------------------------+
-|
-v
-+---------------------------------------------------------------+
-|                       Hardware Abstraction                     |
-|                         (hw.c / cpu.c)                        |
-|                                                               |
-|  - hw_set_button() -> cpu_set_input_pin(PIN_K00..02)          |
-|  - hw_set_lcd_pin() -> g_hal->set_lcd_matrix/icon             |
-|  - hw_set_buzzer*() -> g_hal->set_frequency/play              |
-|                                                               |
-|  ⚠ Fix critique : CPU_SPEED_RATIO non nul                      |
-+------------------------------+--------------------------------+
-|
-v
-+---------------------------------------------------------------+
-|                          ESP32 CYD HW                          |
-|  - TFT ILI9341 320x240   - Touch XPT2046                      |
-|  - Speaker (souvent GPIO 26 via JST)                          |
-+---------------------------------------------------------------+
-```
-
----
-
-## 🔁 Flux d’input (focus tactile)
-
-```
-
-Touch XPT2046
-|
-v
-EspgotchiInput (C++)
-
-* map raw -> screen coords
-* zones bottom bar: LEFT/OK/RIGHT
-* debounce + stable press
-* held state
-* last touch XY (pour UI : SPD etc.)
-  |
-  v
-  EspgotchiInputC (bridge C)
-* espgotchi_input_begin/update
-* espgotchi_input_peek_held
-* espgotchi_input_get_last_touch
-  |
-  v
-  EspgotchiButtons (pump)
-* held -> hw_set_button(BTN_*)
-  |
-  v
-  hw.c -> cpu pins -> TamaLIB logic
-
-```
-
----
-
-## 🖥️ Flux vidéo (LCD P1 -> TFT)
-
-```
-
-TamaLIB CPU
-|
-| writes segments -> hw_set_lcd_pin()
-v
-hal_set_lcd_matrix(x,y,val)
-|
-v
-matrix_buffer[LCD_HEIGHT][LCD_WIDTH/8]
-|
-| hash + FPS limiter
-v
-render_matrix_to_tft()
-|
-v
-TFT_eSPI (pixels agrandis)
-
-```
-
-Top bar :
-
-```
-
-icon_buffer[] + bitmaps.h
-|
-v
-render_menu_bitmaps_topbar()
-
-* 8 icônes
-* highlight slot gris
-* séparateur
-
-```
-
-Bottom bar :
-
-```
-
-held state
-|
-v
-render_touch_buttons_bar()
-
-* L / OK / R visibles
-
-```
-
----
-
-## 🔊 Flux audio (buzzer P1 -> speaker CYD)
-
-```
-
-TamaLIB
-|
-| hw_set_buzzer_freq(u4)
-v
-hw_set_buzzer_freq() -> g_hal->set_frequency(freq)
-|
-v
-hal_set_frequency() -> current_freq
-|
-| hw_enable_buzzer(bool)
-v
-hal_play_frequency(en)
-|
-v
-buzzer_play/stop (LEDC)
-|
-v
-Speaker CYD (souvent GPIO 26)
-
-```
-
----
-
-## ⏱️ Flux temps + accélération SPD
-
-```
-
-esp_timer_get_time() (us réels)
-|
-v
-Temps virtuel monotone
-
-* baseRealUs
-* baseVirtualUs
-* timeMult (1/2/4)
-  |
-  v
-  hal_get_timestamp()
-  |
-  v
-  TamaLIB scheduler
-  |
-  v
-  hal_sleep_until()
-
-```
-
----
-
-## 🔄 Diagramme de séquence (cycle principal)
-
-```
-Utilisateur
-|
-| 1) touche l'écran
-v
-Touch XPT2046
-|
-| 2) lecture SPI
-v
-EspgotchiInput (C++)
-|  - map raw -> coords écran
-|  - hit test zones L/OK/R
-|  - debounce + stable
-|  - held + lastTouchXY
-v
-EspgotchiInputC (bridge C)
-|
-| 3) appelé indirectement côté HAL
-v
-hal_handler()
-|
-| 4) pump boutons bas
-v
-EspgotchiButtons
-|
-| 5) injection CPU pins
-v
-hw_set_button(BTN_*, state)
-|
-v
-cpu_set_input_pin(PIN_K00..02)
-|
-v
-TamaLIB / CPU emu
-|
-| 6) un pas d’émulation
-v
-tamalib_mainloop_step_by_step()
-|
-| 7) écrit dans l’écran logique
-|    (segments / matrix / icônes)
-v
-hal_set_lcd_matrix(x,y,val)  ---> matrix_buffer[][]
-hal_set_lcd_icon(i,val)      ---> icon_buffer[]
-|
-| 8) update écran (selon framerate interne)
-v
-hal_update_screen()
-|
-| 9) throttle FPS réel + hash si activés
-v
-Video Layer (TFT_eSPI)
-|  - render_menu_bitmaps_topbar()
-|  - render_speed_button_topbar()
-|  - render_matrix_to_tft()
-|  - render_touch_buttons_bar()
-v
-Écran CYD (ILI9341)
-
-```
-
----
-
-## 🔊 Diagramme de séquence (son)
-
-```
-TamaLIB
-|
-| hw_set_buzzer_freq(u4)
-v
-hw_set_buzzer_freq()
-|
-v
-hal_set_frequency(freq) -> current_freq
-|
-| hw_enable_buzzer(true/false)
-v
-hal_play_frequency(en)
-|
-v
-buzzer_play/stop (LEDC)
-|
-v
-Speaker CYD (GPIO 26 typ.)
-
-```
-
----
-
-## ⏱️ Diagramme de séquence (temps + SPD)
-```
-
-TamaLIB Scheduler
-|
-| demande timestamp
-v
-hal_get_timestamp()
-|
-| temps virtuel monotone:
-| baseVirtual + (nowReal-baseReal)*timeMult
-v
-timestamp (us virtuels)
-|
-| calcule deadline
-v
-hal_sleep_until(deadline)
-|
-| delay/delayMicroseconds
-v
-Cadence stable
-
-Utilisateur
-|
-| tap bouton "SPD"
-v
-hal_handler()
-|
-| lit lastTouchXY
-| set_time_mult(1/2/4)
-v
-timeMult mis à jour
-
-```
-
----
-
-## ✅ TL;DR comportement en loop
-
-```
-
-loop():
-tamalib_mainloop_step_by_step()
--> hal_handler()       (inputs)
--> hal_get_timestamp() (time)
--> hal_sleep_until()   (cadence)
--> hal_set_lcd_*()     (buffers)
--> hal_update_screen() (TFT)
-
-```
-
-## 🎯 Points d’extension prévus
-
-```
-
-[Future]
-+-----------------------------+
-| Direct Icon Tap (smart UX)  |
-| - tap icône -> macro L/OK   |
-| - swipe topbar              |
-+-----------------------------+
-
-+-----------------------------+
-| Background dynamique        |
-| - jour/nuit selon l'heure   |
-| - thèmes/skins              |
-+-----------------------------+
-
-+-----------------------------+
-| Refacto Services            |
-| - VideoService              |
-| - AudioService              |
-| - InputService              |
-| - TamaHost                  |
-+-----------------------------+
-
-```
-
----
-
-## ✅ Invariants “golden version”
-
-- Le core TamaLIB/ROM reste inchangé autant que possible.
-- Toute modernisation passe par :
-  - **HAL**
-  - **Input injection**
-  - **UI de rendu**
-  - **Time virtualization**
-- Le tactile **ne doit pas** casser la logique bouton originelle :
-  - on simule un humain parfait, pas une nouvelle ROM.
-
----
-
-## 🧡 TL;DR
-
-Espgotchi est un **Tamagotchi P1 modernisé** :
-
-* même cœur
-* meilleure IHM
-* tactile
-* écran CYD
-* vitesse réglable
-* son ESP32
-
-Bref : un vrai v-pet rétro… avec un corps du futur.
+Ce projet réutilise des composants sous licence open-source
+(dont GPL côté core). Vérifier et respecter les licences d’origine
+lors de la redistribution.
