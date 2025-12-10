@@ -3,13 +3,13 @@
 Ce document décrit l’architecture technique d’Espgotchi :  
 un port **ESP32 CYD** d’**ArduinoGotchi** (émulation Tamagotchi P1) basé sur **TamaLIB + ROM 12-bit**, avec :
 
-- rendu TFT (ILI9341)
-- input tactile (XPT2046)
-- boutons virtuels L/OK/R
-- bouton vitesse SPD x1/x2/x4
-- audio via LEDC (sortie speaker CYD)
+- rendu TFT (ILI9341) via **VideoService**
+- input tactile (XPT2046) via **InputService**
+- boutons virtuels L/OK/R + bouton SPD x1/x2/x4
+- audio via LEDC (speaker CYD) via **AudioService**
+- glue HAL + temps virtuel via **TamaHost** :contentReference[oaicite:0]{index=0}  
 
-L’objectif de cette architecture est de **préserver le core d’émulation** et d’apporter les améliorations modernes via une couche HAL/UX propre.
+L’objectif de cette architecture est de **préserver le core d’émulation** et d’apporter les améliorations modernes via une couche de services bien séparés.
 
 ---
 
@@ -17,10 +17,11 @@ L’objectif de cette architecture est de **préserver le core d’émulation** 
 
 - **Le cœur Tamagotchi (ROM + TamaLIB) est la référence.**
 - Toutes les modernisations passent par :
-  - le **HAL**,
-  - l’**injection d’input**,
-  - le **rendu UI**,
-  - la **virtualisation du temps**.
+  - le **HAL** (via `TamaHost`),
+  - l’**injection d’input** (via `InputService`),
+  - le **rendu UI** (via `VideoService`),
+  - la **virtualisation du temps** (SPD) dans `TamaHost`,
+  - le **backend audio** (via `AudioService`).
 - Le tactile ne doit pas réécrire la logique interne :  
   il **simule un humain** qui appuie sur LEFT/OK/RIGHT.
 
@@ -30,38 +31,29 @@ L’objectif de cette architecture est de **préserver le core d’émulation** 
 
 ```text
 +---------------------------------------------------------------+
-|                         Espgotchi App                          |
-|              (TamaApp_Headless.cpp / app principale)           |
+|                         Espgotchi App                        |
+|                     (TamaApp_Headless.cpp)                   |
 |                                                               |
-|  +-------------------+     +-------------------+               |
-|  |   Video Layer     |     |   Audio Layer     |               |
-|  | (TFT_eSPI render) |     | (LEDC Speaker)    |               |
-|  +---------+---------+     +---------+---------+               |
-|            |                         |                         |
-|            v                         v                         |
-|  +-------------------+     +-------------------+               |
-|  |  UI Composition   |     |  Audio Backend    |               |
-|  | - Top bar icons   |     | - buzzer_init     |               |
-|  | - SPD button      |     | - buzzer_play     |               |
-|  | - LCD matrix      |     | - buzzer_stop     |               |
-|  | - 3 touch buttons |     +-------------------+               |
-|  +---------+---------+                                       |
-|            |                                                 |
-+------------|-------------------------------------------------+
-             |
-             v
+|  +-------------------+   +-------------------+   +-----------+|
+|  |   VideoService    |   |   AudioService    |   |InputService||
+|  | (TFT_eSPI render) |   | (LEDC Speaker)    |   | (Touch +   ||
+|  |                   |   |                   |   |  hw_set_   ||
+|  +---------+---------+   +---------+---------+   |  button)   ||
+|            |                     |              +-----------+ |
++------------|---------------------|---------------------------+
+             |                     |
+             v                     v
 +---------------------------------------------------------------+
-|                         HAL Glue Layer                        |
-|                (implémentation hal_t côté ESP32)              |
+|                          TamaHost                             |
+|         (implémentation HAL + temps virtuel TamaLIB)          |
 |                                                               |
-|  halt/log/sleep/get_ts/update_screen/set_matrix/set_icon/...  |
-|                                                               |
-|  - hal_get_timestamp()  -> temps virtuel monotone + SPD x1/2/4|
-|  - hal_sleep_until()    -> cadence stable                     |
-|  - hal_update_screen()  -> Video Layer                        |
-|  - hal_set_frequency()  -> current_freq                       |
-|  - hal_play_frequency() -> Audio Layer                        |
-|  - hal_handler()        -> Input pump + SPD tap               |
+|  - gère:                                                       |
+|    * hal_get_timestamp()  -> temps virtuel + SPD x1/2/4/8     |
+|    * hal_sleep_until()    -> cadence stable                   |
+|    * hal_update_screen()  -> VideoService                     |
+|    * hal_set_lcd_matrix/icon()                                |
+|    * hal_set_frequency() / hal_play_frequency() -> AudioSvc   |
+|    * hal_handler() -> InputService + bouton SPD               |
 +------------------------------+--------------------------------+
                                |
                                v
@@ -73,7 +65,7 @@ L’objectif de cette architecture est de **préserver le core d’émulation** 
 |      |                                                        |
 |      | calls g_hal->...                                       |
 |      v                                                        |
-|  - LCD matrix writes -> hal_set_lcd_matrix()                   |
+|  - LCD matrix writes -> hal_set_lcd_matrix()                  |
 |  - Icon updates     -> hal_set_lcd_icon()                     |
 |  - Buzzer control   -> hal_set_frequency()/play_frequency()   |
 |  - Timing requests  -> hal_sleep_until()/get_timestamp()      |
@@ -82,7 +74,7 @@ L’objectif de cette architecture est de **préserver le core d’émulation** 
                                |
                                v
 +---------------------------------------------------------------+
-|                       Hardware Abstraction                     |
+|                       Hardware Abstraction                    |
 |                         (hw.c / cpu.c)                        |
 |                                                               |
 |  - hw_set_button() -> cpu_set_input_pin(PIN_K00..02)          |
@@ -94,79 +86,125 @@ L’objectif de cette architecture est de **préserver le core d’émulation** 
                                |
                                v
 +---------------------------------------------------------------+
-|                          ESP32 CYD HW                          |
+|                          ESP32 CYD HW                         |
 |  - TFT ILI9341 320x240   - Touch XPT2046                      |
-|  - Speaker (souvent GPIO 26 via JST)                          |
+|  - Speaker (GPIO 26 via JST)                                  |
 +---------------------------------------------------------------+
-````
+```
 
 ---
 
 ## 3) Modules & responsabilités
 
-### 3.1 Input
+### 3.1 Input — `InputService`
 
-* **EspgotchiInput (C++)**
+**`InputService`** encapsule toute la gestion d’input haut niveau :
 
-  * calibration raw -> écran
-  * zones tactiles bas d’écran : LEFT / OK / RIGHT
-  * debouncing + “stable press”
-  * état `held`
-  * dernier touch `(x,y,down)` pour UI additionnelle (SPD)
+* s’appuie en interne sur `EspgotchiInput` (C++) pour :
 
-* **EspgotchiInputC (bridge C)**
+  * calibration raw -> coordonnées écran,
+  * zones tactiles bas d’écran : **LEFT / OK / RIGHT**,
+  * debouncing + “stable press”,
+  * état **held** (0 = NONE, 1 = LEFT, 2 = OK, 3 = RIGHT),
+  * dernier touch `(x, y, down)` pour la UI (SPD notamment).
+* expose :
 
-  * expose un API C minimal au reste de l’app / HAL
+  * `update()` → lit le tactile et met à jour `hw_set_button(BTN_*, PRESSED/RELEASED)` pour TamaLIB,
+  * `getHeld()` → utilisé par le log et par `VideoService` pour la barre de boutons,
+  * `getLastTouch(...)` → utilisé par `TamaHost` pour détecter les taps sur le bouton SPD.
 
-* **EspgotchiButtons**
+> Les anciens wrappers C (`EspgotchiInputC`, `EspgotchiButtons`) ont été supprimés :
+> ils sont désormais remplacés par `InputService`, plus simple et typé C++. 
 
-  * lit `held`
-  * injecte l’input dans TamaLIB via :
+---
 
-    * `hw_set_button(BTN_*, PRESSED/RELEASED)`
+### 3.2 Video — `VideoService`
 
-### 3.2 Video
+**`VideoService`** est le backend vidéo **ESP32 CYD + TFT_eSPI** :
 
-* Buffer LCD P1 :
+* possède son propre `TFT_eSPI` et gère :
 
-  * `matrix_buffer[LCD_HEIGHT][LCD_WIDTH/8]`
-  * `icon_buffer[ICON_NUM]`
+  * `initDisplay()` : init driver, rotation, clear, backlight,
+  * `begin()` : reset des buffers vidéo internes.
+* buffers logiques :
 
-* Rendu TFT composé de :
+  * `matrix[LCD_HEIGHT][LCD_WIDTH/8]` : écran 48×32 du P1,
+  * `icons[ICON_NUM]` : icônes du top bar.
+* hooks pour le HAL :
 
-  * top bar icônes (bitmaps ArduinoGotchi)
-  * bouton SPD dans la top bar
-  * matrice LCD agrandie et centrée
-  * barre boutons tactiles visibles en bas
+  * `setLcdMatrix(x, y, val)` ← `hal_set_lcd_matrix`,
+  * `setLcdIcon(icon, val)`   ← `hal_set_lcd_icon`,
+  * `updateScreen()`          ← `hal_update_screen`.
+* layout & rendu :
 
-* Anti-flicker :
+  * **Top bar** :
 
-  * limitation FPS d’affichage (temps réel)
-  * hash matrix (skip si inchangé)
+    * 8 icônes (bitmaps ArduinoGotchi),
+    * highlight gris du slot sélectionné,
+    * séparateur fin.
+  * **Zone LCD** :
 
-### 3.3 Audio
+    * scaling + centrage dans la zone centrale,
+    * redraw optimisé via **hash FNV** de la matrice pour éviter les frames identiques.
+  * **Bottom bar** :
 
-* LEDC backend :
+    * 3 boutons visuels **L / OK / R**,
+    * anti-flicker : redraw uniquement si `held` change.
+  * **Bouton SPD** :
 
-  * `buzzer_init()`
-  * `buzzer_play(freq)`
-  * `buzzer_stop()`
+    * bouton en haut à droite (`SPD x<timeMult>`),
+    * méthode utilitaire `isInsideSpeedButton(x,y)` pour `TamaHost`.
 
-* Chaîne d’appel :
+---
 
-  * `hw_set_buzzer_freq()` -> `hal_set_frequency()`
-  * `hw_enable_buzzer()`   -> `hal_play_frequency()`
+### 3.3 Audio — `AudioService`
 
-### 3.4 Time
+**`AudioService`** encapsule le buzzer/speaker via **LEDC** :
 
-* Temps réel :
+* init :
 
-  * `esp_timer_get_time()` en microsecondes
+  * `begin()` configure LEDC sur `BUZZER_PIN` (GPIO 26) et canal dédié.
+* API :
 
-* Temps virtuel **monotone** :
+  * `setFrequency(freqHz)` : définit la fréquence cible,
+  * `play()` / `stop()` : démarre/arrête le son,
+  * `setMuted(bool)` + `setVolume(uint8_t 0–255)` (prévu pour futures options UX).
+* impl :
 
-  * évite les sauts en arrière
-  * évite les freeze lors de `x4 -> x1`
+  * `ledcWriteTone(BUZZER_CH, freq)` pour la fréquence,
+  * `ledcWrite(BUZZER_CH, duty)` pour le volume (mapping 0–255 → 0..1023).
+* piloté par `TamaHost` via deux callbacks globaux :
+
+  * `espgotchi_hal_set_frequency(freq)` → `audio.setFrequency(freq)`,
+  * `espgotchi_hal_play_frequency(en)`  → `audio.play()` / `audio.stop()`.
+
+---
+
+### 3.4 Temps & HAL — `TamaHost`
+
+**`TamaHost`** est la glue entre TamaLIB et les services :
+
+* gère le **temps virtuel** :
+
+  * `_baseRealUs`, `_baseVirtualUs`, `timeMult`,
+  * `getTimestamp()` = `baseVirtual + (nowReal - baseReal) * timeMult`,
+  * SPD supporte x1 / x2 / x4 / x8 avec temps **monotone**.
+* expose le `hal_t` complet :
+
+  * `get_timestamp` / `sleep_until`,
+  * `update_screen`, `set_lcd_matrix`, `set_lcd_icon`,
+  * `set_frequency`, `play_frequency`,
+  * `handler`.
+* `handler()` :
+
+  * appelle `input.update()` → injection boutons CPU,
+  * lit `getLastTouch()` pour détecter les taps sur le bouton SPD,
+  * change `timeMult` en cycle (1 → 2 → 4 → 8 → 1),
+  * logge les transitions de `held` (LEFT / OK / RIGHT / NONE).
+* boucle :
+
+  * `begin(fps, startUs)` → enregistre le HAL dans TamaLIB,
+  * `loopOnce()` → `tamalib_mainloop_step_by_step()` + log “alive” toutes les 2 s.
 
 ---
 
@@ -177,24 +215,19 @@ Touch XPT2046
      |
      v
 EspgotchiInput (C++)
-- map raw -> screen coords
-- hit test zones L/OK/R
-- debounce + stable press
-- held state
-- last touch XY (pour UI : SPD)
+  - map raw -> screen coords
+  - zones bottom: LEFT / OK / RIGHT
+  - debounce + stable press
+  - held + lastTouch(x,y,down)
      |
      v
-EspgotchiInputC (bridge C)
-- espgotchi_input_begin/update
-- espgotchi_input_peek_held
-- espgotchi_input_get_last_touch
+InputService
+  - update() -> hw_set_button(BTN_*, PRESSED/RELEASED)
+  - getHeld() -> VideoService (UI bas)
+  - getLastTouch() -> TamaHost (SPD tap)
      |
      v
-EspgotchiButtons (pump)
-- held -> hw_set_button(BTN_*)
-     |
-     v
-hw.c -> cpu pins -> TamaLIB logic
+hw.c / cpu.c -> TamaLIB CPU pins
 ```
 
 ---
@@ -206,19 +239,23 @@ TamaLIB CPU
   |
   | writes segments -> hw_set_lcd_pin()
   v
-hal_set_lcd_matrix(x,y,val)  ---> matrix_buffer[][]
-hal_set_lcd_icon(i,val)      ---> icon_buffer[]
-  |
-  | FPS limiter + hash
-  v
-hal_update_screen()
+hal_set_lcd_matrix(x,y,val)
   |
   v
-TFT_eSPI
-- render_menu_bitmaps_topbar()
-- render_speed_button_topbar()
-- render_matrix_to_tft()
-- render_touch_buttons_bar()
+VideoService::setLcdMatrix()  -> matrix[][]
+  |
+  | (hash + FPS limit)
+  v
+VideoService::updateScreen()
+  |
+  v
+TFT_eSPI:
+  - topbar icons
+  - SPD button
+  - LCD matrix (scaled+centered)
+  - bottom L/OK/R buttons
+  v
+Écran CYD (ILI9341)
 ```
 
 ---
@@ -228,169 +265,88 @@ TFT_eSPI
 ```text
 TamaLIB
   |
-  | hw_set_buzzer_freq(u4)
+  | hw_set_buzzer_freq
   v
 hw_set_buzzer_freq()
   |
   v
-hal_set_frequency(freq) -> current_freq
+hal_set_frequency(freq)
+  |
+  v
+espgotchi_hal_set_frequency(freq)
+  |
+  v
+AudioService::setFrequency(freq)
+
+TamaLIB
   |
   | hw_enable_buzzer(true/false)
   v
 hal_play_frequency(en)
   |
   v
-buzzer_play/stop (LEDC)
+espgotchi_hal_play_frequency(en)
   |
   v
-Speaker CYD (souvent GPIO 26)
+AudioService::play() / stop()
+  |
+  v
+LEDC -> Speaker CYD (GPIO 26)
 ```
 
 ---
 
-## 7) Flux temps + SPD
+## 7) Temps + SPD
 
 ```text
 esp_timer_get_time() (us réels)
      |
      v
-Temps virtuel monotone
-- baseRealUs
-- baseVirtualUs
-- timeMult (1/2/4)
+TamaHost:
+  baseRealUs / baseVirtualUs / timeMult
      |
      v
-hal_get_timestamp()
+hal_get_timestamp() -> temps virtuel
      |
      v
 TamaLIB scheduler
      |
      v
-hal_sleep_until()
+hal_sleep_until() -> delay/delayMicroseconds
 ```
 
----
-
-## 8) Diagrammes de séquence
-
-### 8.1 Cycle principal
-
-```text
-Utilisateur
-   |
-   | 1) touche l'écran
-   v
-Touch XPT2046
-   |
-   | 2) lecture SPI
-   v
-EspgotchiInput (C++)
-   |  - map raw -> coords écran
-   |  - hit test zones L/OK/R
-   |  - debounce + stable
-   |  - held + lastTouchXY
-   v
-EspgotchiInputC
-   |
-   v
-hal_handler()
-   |
-   | 3) pump boutons bas
-   v
-EspgotchiButtons
-   |
-   | 4) injection CPU pins
-   v
-hw_set_button(BTN_*, state)
-   |
-   v
-cpu_set_input_pin(PIN_K00..02)
-   |
-   v
-TamaLIB / CPU emu
-   |
-   | 5) un pas d’émulation
-   v
-tamalib_mainloop_step_by_step()
-   |
-   | 6) writes LCD & icons
-   v
-hal_set_lcd_matrix/icon()
-   |
-   | 7) update écran
-   v
-hal_update_screen()
-   |
-   | 8) throttle + hash
-   v
-TFT_eSPI render
-   |
-   v
-Écran CYD
-```
-
-### 8.2 Son
-
-```text
-TamaLIB
-  |
-  | hw_set_buzzer_freq / hw_enable_buzzer
-  v
-hw.c
-  |
-  v
-hal_set_frequency -> current_freq
-hal_play_frequency(en)
-  |
-  v
-LEDC buzzer backend
-  |
-  v
-Speaker CYD
-```
-
-### 8.3 SPD
+SPD :
 
 ```text
 Utilisateur
   |
-  | tap sur "SPD"
+  | Tap sur zone SPD (top-right)
   v
-hal_handler()
-  |
-  | détecte zone top-right
-  | set_time_mult()
-  v
-timeMult mis à jour
+InputService::getLastTouch()
   |
   v
-hal_get_timestamp() (temps virtuel monotone)
+TamaHost::handleHandler()
+  - isInsideSpeedButton(x,y) via VideoService
+  - setTimeMult(next)      (1 -> 2 -> 4 -> 8 -> 1)
 ```
 
 ---
 
-## 9) Invariants de la “golden version”
+## 8) Invariants
 
-* La logique interne du P1 est non modifiée (sauf fix timing nécessaire).
-* L’UX tactile actuelle est strictement équivalente aux 3 boutons originaux.
-* L’accélération SPD ne doit pas :
+* Le core **TamaLIB/ROM** reste intact (hors fix timing `CPU_SPEED_RATIO`).
+* Le tactile **simule des boutons physiques** (via `hw_set_button()`).
+* SPD ne doit pas :
 
-  * dégrader la stabilité d’affichage,
-  * provoquer de freeze,
+  * casser la stabilité de l’affichage,
+  * provoquer des freeze,
   * casser la logique du scheduler.
 
 ---
 
-## 10) Points d’extension
+## 9) Points d’extension
 
-```text
-[Future]
-- Direct Icon Tap :
-  tap icône -> macro L(L...) + OK
-- Background dynamique :
-  jour/nuit selon heure
-- Refacto Services :
-  VideoService / AudioService / InputService / TamaHost
-- Mode debug overlay
-- Skins & thèmes
-```
+* Tap direct sur une icône → macro L/OK sur le menu.
+* Thèmes / backgrounds dynamiques selon l’heure.
+* Overlay debug optionnel.
+* Slider/paramètres pour le volume et le mute du son.
