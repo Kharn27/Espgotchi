@@ -47,11 +47,14 @@ private:
 
   // Buffers internes (équivalents aux statiques actuels)
   bool_t _matrix[LCD_HEIGHT][LCD_WIDTH / 8];
+  bool_t _prevMatrix[LCD_HEIGHT][LCD_WIDTH / 8];   // <--- NEW
   bool_t _icons[ICON_NUM];
+
 
   uint64_t _lastRenderRealUs = 0;
   uint32_t _lastMatrixHash = 0;
-
+  bool _firstMatrixRender = true;     
+  
   // Helpers internes
   uint32_t hashMatrix() const;
   void renderMatrixToTft();

@@ -17,4 +17,4 @@ static constexpr uint16_t SPEED_BTN_H = TOP_BAR_H;
 static constexpr uint16_t SPEED_BTN_X = SCREEN_W - SPEED_BTN_W;
 static constexpr uint16_t SPEED_BTN_Y = 0;
 
-static constexpr uint32_t RENDER_FPS = 12;
+static constexpr uint32_t RENDER_FPS = 4;
