@@ -2,6 +2,7 @@
 
 #include <Arduino.h>
 #include "EspgotchiInput.h"
+#include "UiLayout.h"
 
 extern "C" {
 #include "arduinogotchi_core/hw.h"

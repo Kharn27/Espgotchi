@@ -272,9 +272,13 @@ void VideoService::renderTouchButtonsBar()
   }
 
   // Anti-flicker simple : redraw seulement si changement
+  static bool first = true;
   static LogicalButton lastHeld = LogicalButton::NONE;
-  if (held == lastHeld)
+
+  if (!first && held == lastHeld)
     return;
+
+  first = false;
   lastHeld = held;
 
   _tft.fillRect(0, barY, SCREEN_W, barH, TFT_BLACK);
@@ -284,8 +288,8 @@ void VideoService::renderTouchButtonsBar()
     int x = i * slotW;
 
     bool isActive =
-        (held == LogicalButton::LEFT  && i == 0) ||
-        (held == LogicalButton::OK    && i == 1) ||
+        (held == LogicalButton::LEFT && i == 0) ||
+        (held == LogicalButton::OK && i == 1) ||
         (held == LogicalButton::RIGHT && i == 2);
 
     uint16_t fill = isActive ? TFT_DARKGREY : TFT_BLACK;
@@ -325,14 +329,13 @@ void VideoService::renderSpeedButtonTopbar()
 
   const int textH = 8 * 1; // hauteur d'un caractère en textSize=1
 
-  int tx = SPEED_BTN_X + 10;                             // on garde ton offset horizontal
-  int ty = SPEED_BTN_Y + (SPEED_BTN_H - textH) / 2;      // centrage vertical
+  int tx = SPEED_BTN_X + 10;                        // on garde ton offset horizontal
+  int ty = SPEED_BTN_Y + (SPEED_BTN_H - textH) / 2; // centrage vertical
 
   _tft.setCursor(tx, ty);
   _tft.print("SPD x");
   _tft.print(timeMult);
 }
-
 
 void VideoService::updateScreen()
 {
