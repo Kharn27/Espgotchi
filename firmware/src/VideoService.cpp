@@ -213,28 +213,6 @@ void VideoService::drawMonoBitmap16x9(int x, int y, const uint8_t *data, int sca
   }
 }
 
-// void VideoService::drawMonoBitmap16x9(int x, int y, const uint8_t *data, int scale)
-// {
-//   const int w = 16;
-//   const int h = 9;
-
-//   for (int j = 0; j < h; j++)
-//   {
-//     for (int i = 0; i < w; i++)
-//     {
-//       int bitIndex = j * w + i;
-//       int byteIndex = bitIndex / 8;
-//       int bitInByte = (bitIndex % 8); // LSB-first, comme ton code actuel
-
-//       bool on = (data[byteIndex] >> bitInByte) & 0x01;
-//       if (on)
-//       {
-//         _tft.fillRect(x + i * scale, y + j * scale, scale, scale, TFT_WHITE);
-//       }
-//     }
-//   }
-// }
-
 void VideoService::renderMenuBitmapsTopbar()
 {
   const int barH = TOP_BAR_H;
