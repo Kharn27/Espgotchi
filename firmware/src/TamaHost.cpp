@@ -13,17 +13,21 @@ TamaHost *TamaHost::s_instance = nullptr;
 
 // HAL statique
 hal_t TamaHost::s_hal = {
-    .halt           = &TamaHost::hal_halt,
-    .log            = &TamaHost::hal_log,
-    .sleep_until    = &TamaHost::hal_sleep_until,
-    .get_timestamp  = &TamaHost::hal_get_timestamp,
-    .update_screen  = &TamaHost::hal_update_screen,
-    .set_lcd_matrix = &TamaHost::hal_set_lcd_matrix,
-    .set_lcd_icon   = &TamaHost::hal_set_lcd_icon,
-    .set_frequency  = &TamaHost::hal_set_frequency,
-    .play_frequency = &TamaHost::hal_play_frequency,
-    .handler        = &TamaHost::hal_handler,
+    .malloc        = &TamaHost::hal_malloc,
+    .free          = &TamaHost::hal_free,
+    .halt          = &TamaHost::hal_halt,
+    .is_log_enabled= &TamaHost::hal_is_log_enabled,
+    .log           = &TamaHost::hal_log,
+    .sleep_until   = &TamaHost::hal_sleep_until,
+    .get_timestamp = &TamaHost::hal_get_timestamp,
+    .update_screen = &TamaHost::hal_update_screen,
+    .set_lcd_matrix= &TamaHost::hal_set_lcd_matrix,
+    .set_lcd_icon  = &TamaHost::hal_set_lcd_icon,
+    .set_frequency = &TamaHost::hal_set_frequency,
+    .play_frequency= &TamaHost::hal_play_frequency,
+    .handler       = &TamaHost::hal_handler,
 };
+
 
 TamaHost::TamaHost(VideoService &video, InputService &input)
     : _video(video), _input(input) {}
@@ -163,6 +167,29 @@ int TamaHost::handleHandler() {
 
 
 // -------- HAL statiques --------
+
+void* TamaHost::hal_malloc(u32_t size)
+{
+    // Pour l’instant on n’utilise pas les breakpoints,
+    // donc on peut renvoyer NULL et tamalib ne devrait
+    // pas appeler cette fonction dans notre config.
+    (void)size;
+    return NULL;
+}
+
+void TamaHost::hal_free(void* ptr)
+{
+    // Rien à faire tant qu’on ne fait pas d’alloc dynamique via le HAL
+    (void)ptr;
+}
+
+bool_t TamaHost::hal_is_log_enabled(log_level_t level)
+{
+    // Implémentation simple : tout est loggué.
+    // On pourra affiner plus tard (filtrer LOG_MEMORY, LOG_CPU, etc.)
+    (void)level;
+    return 1;
+}
 
 void TamaHost::hal_halt() {
   // rien de spécial

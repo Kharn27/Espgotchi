@@ -2,7 +2,8 @@
 
 #include <Arduino.h>
 
-extern "C" {
+extern "C"
+{
 #include "arduinogotchi_core/tamalib.h"
 #include "arduinogotchi_core/hal.h"
 }
@@ -11,7 +12,8 @@ class VideoService;
 class InputService;
 
 // Hôte TamaLIB : gère le temps virtuel, le HAL et le handler()
-class TamaHost {
+class TamaHost
+{
 public:
   TamaHost(VideoService &video, InputService &input);
 
@@ -50,6 +52,11 @@ private:
   // glue statique
   static TamaHost *s_instance;
   static hal_t s_hal;
+
+  // nouveaux pour aligner le HAL avec TamaLIB
+  static void *hal_malloc(u32_t size);
+  static void hal_free(void *ptr);
+  static bool_t hal_is_log_enabled(log_level_t level);
 
   static void hal_halt();
   static void hal_log(log_level_t level, char *buff, ...);

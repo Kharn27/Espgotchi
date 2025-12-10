@@ -23,26 +23,29 @@
 #include "hal_types.h"
 
 #ifndef NULL
-	#define NULL 0
+#define NULL 0
 #endif
 
-typedef enum {
-	LOG_ERROR	= 0x1,
-	LOG_INFO	= (0x1 << 1),
-	LOG_MEMORY	= (0x1 << 2),
-	LOG_CPU		= (0x1 << 3),
+typedef enum
+{
+	LOG_ERROR = 0x1,
+	LOG_INFO = (0x1 << 1),
+	LOG_MEMORY = (0x1 << 2),
+	LOG_CPU = (0x1 << 3),
+	LOG_INT = (0x1 << 4), // aligné sur TamaLIB upstream
 } log_level_t;
 
 /* The Hardware Abstraction Layer
  * NOTE: This structure acts as an abstraction layer between TamaLIB and the OS/SDK.
  * All pointers MUST be implemented, but some implementations can be left empty.
  */
-typedef struct {
+typedef struct
+{
 	/* Memory allocation functions
 	 * NOTE: Needed only if breakpoints support is required.
 	 */
-	//void * (*malloc)(u32_t size);
-	//void (*free)(void *ptr);
+	void * (*malloc)(u32_t size);
+	void (*free)(void *ptr);
 
 	/* What to do if the CPU has halted
 	 */
@@ -51,7 +54,7 @@ typedef struct {
 	/* Log related function
 	 * NOTE: Needed only if log messages are required.
 	 */
-	//bool_t (*is_log_enabled)(log_level_t level);
+	bool_t (*is_log_enabled)(log_level_t level);
 	void (*log)(log_level_t level, char *buff, ...);
 
 	/* Clock related functions
