@@ -53,8 +53,8 @@ void setup()
 
   // Init touch + hw
   input.begin();
-  hw_init();
-
+  // hw_init();   // démarré via tamalib_init_espgotchi() dans tamalib_init() désormais
+  
   // Vidéo
   // Brancher InputService dans VideoService pour la barre de boutons
   video.setInputService(&input);

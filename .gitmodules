@@ -1,0 +1,3 @@
+[submodule "firmware/lib/tamalib"]
+	path = firmware/lib/tamalib
+	url = https://github.com/jcrona/tamalib
