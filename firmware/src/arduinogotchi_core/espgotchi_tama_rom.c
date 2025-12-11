@@ -6,33 +6,55 @@
 #ifndef PROGMEM
 #define PROGMEM
 #endif
+
 #include "rom_12bit.h"  // contient g_program_b12 = ROM P1 packée en 12 bits
 
-/* NOTE:
- * Dans une étape future, on retournera ici le vrai programme P1
- * (tableau de u12_t généré depuis la ROM, comme rom_12bit.h
- *  dans ArduinoGotchi), et éventuellement une liste de breakpoints.
+/* Nombre d'opcodes 12 bits dans la ROM :
+ * Chaque paire d'opcodes est packée sur 3 octets.
  */
-const u12_t *espgotchi_get_tama_program(void)
-{
-    /* On a déjà la ROM P1 packée en 12 bits dans rom_12bit.h :
-     *   static const unsigned char g_program_b12[] PROGMEM;
-     *
-     * TamaLIB s’attend à recevoir un tableau de u12_t (une
-     * instruction par entrée). Pour l’instant, notre cpu.c
-     * n’utilise PAS ce pointeur 'program' et lit directement
-     * g_program_b12 via getProgramOpCode().
-     *
-     * Du coup, on peut se contenter de passer un pointeur
-     * symbolique vers cette ROM (castée), sans changer le
-     * comportement. Le jour où on migrera sur le CPU upstream,
-     * on utilisera vraiment ce pointeur pour décoder la ROM
-     * en u12_t.
-     */
+#define ESPGOTCHI_PROGRAM_WORDS ((sizeof(g_program_b12) / 3) * 2)
 
-    return (const u12_t *)(const void *)g_program_b12;
+/* Programme TamaLIB au format attendu par cpu.c (un u12_t par opcode) */
+static u12_t s_program[ESPGOTCHI_PROGRAM_WORDS];
+static bool_t s_program_initialized = 0;
+
+/* Dépacke g_program_b12 (3 octets -> 2 opcodes 12 bits) dans s_program[] */
+static void espgotchi_build_program(void)
+{
+    if (s_program_initialized) {
+        return;
+    }
+
+    const u32_t byte_count = (u32_t)sizeof(g_program_b12);
+    const u32_t pair_count = byte_count / 3;
+    const u32_t op_count   = pair_count * 2;  // = ESPGOTCHI_PROGRAM_WORDS
+
+    for (u32_t pc = 0; pc < op_count; ++pc) {
+        u32_t i = pc >> 1;     // index de paire (2 opcodes / 3 octets)
+        u32_t j = i * 3;       // index de base dans g_program_b12
+
+        if ((pc & 1u) == 0u) {
+            /* opcode pair : bits 11..0 = [byte0 << 4] | [byte1 bits 7..4] */
+            s_program[pc] =
+                ((u12_t)g_program_b12[j] << 4) |
+                ((u12_t)(g_program_b12[j + 1] >> 4) & 0x0F);
+        } else {
+            /* opcode impair : bits 11..0 = [byte1 bits 3..0 << 8] | byte2 */
+            s_program[pc] =
+                ((u12_t)(g_program_b12[j + 1] & 0x0F) << 8) |
+                (u12_t)g_program_b12[j + 2];
+        }
+    }
+
+    s_program_initialized = 1;
 }
 
+const u12_t *espgotchi_get_tama_program(void)
+{
+    /* Première fois : on dépacke la ROM packée 12 bits dans s_program[] */
+    espgotchi_build_program();
+    return s_program;
+}
 
 breakpoint_t *espgotchi_get_tama_breakpoints(void)
 {
