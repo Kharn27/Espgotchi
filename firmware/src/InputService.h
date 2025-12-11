@@ -15,6 +15,7 @@ enum class LogicalButton : uint8_t {
   LEFT,
   OK,
   RIGHT,
+  LR,  // les deux boutons gauche + droite ensemble
 
   // Boutons propres à Espgotchi
   SPEED,
@@ -35,7 +36,7 @@ public:
   void begin();
   void update();
 
-  // Bouton actuellement "tenu" pour le bas de l’écran (L/OK/R)
+  // Bouton actuellement "tenu" pour le bas de l’écran (L/OK/R/LR)
   LogicalButton getHeld() const;
 
   // Renvoie 1 si on a une position connue, 0 sinon

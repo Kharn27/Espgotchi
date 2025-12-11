@@ -22,7 +22,7 @@ static const int SCREEN_H = 240;
 
 static const int BAR_H = 50;
 static const int BAR_Y = SCREEN_H - BAR_H;
-static const int BTN_W = SCREEN_W / 3;
+static const int BTN_W = SCREEN_W / 4;
 
 // Touch global minimal (pas d’UI ici)
 static SPIClass touchSPI(VSPI);
@@ -52,9 +52,10 @@ VButton EspgotchiInput::consumeAny() {
 
 static VButton hitTestButton(int x, int y) {
   if (y < BAR_Y) return VButton::NONE;
-  if (x < BTN_W) return VButton::LEFT;
-  if (x < 2 * BTN_W) return VButton::OK;
-  return VButton::RIGHT;
+  if (x < BTN_W)         return VButton::LEFT;
+  if (x < 2 * BTN_W)     return VButton::OK;
+  if (x < 3 * BTN_W)     return VButton::RIGHT;
+  return VButton::LR;  // dernier quart de l’écran
 }
 
 void EspgotchiInput::begin() {

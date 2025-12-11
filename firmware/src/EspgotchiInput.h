@@ -6,7 +6,8 @@ enum class VButton : uint8_t
   NONE = 0,
   LEFT,
   OK,
-  RIGHT
+  RIGHT,
+  LR
 };
 
 struct EspgotchiInputState
