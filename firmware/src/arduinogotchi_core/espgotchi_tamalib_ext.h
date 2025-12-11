@@ -2,6 +2,7 @@
 #define _ESPGOTCHI_TAMALIB_EXT_H_
 
 #include "tamalib.h"
+#include "cpu.h"
 #include "espgotchi_tama_rom.h"
 
 #ifdef __cplusplus

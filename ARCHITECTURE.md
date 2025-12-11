@@ -12,6 +12,14 @@ un port **ESP32 CYD** d’**ArduinoGotchi** (émulation Tamagotchi P1) basé sur
 
 L’objectif de cette architecture est de **préserver le core d’émulation** et d’apporter les améliorations modernes via une couche de services bien séparés.
 
+**Sources core :**
+
+- `firmware/lib/tamalib/` → sous-module **TamaLIB** (HAL + CPU ArduinoGotchi) ; `hal_types.h` et les headers `hal*.h` gardent leur licence d’origine.
+- `firmware/src/arduinogotchi_core/` → wrappers d’intégration ESPGotchi :
+  - `espgotchi_tamalib_ext.*` (implémentations HAL/bridge C côté ESP32),
+  - `espgotchi_tama_rom.*` + `rom_12bit.h` (ROM P1 convertie depuis ArduinoGotchi),
+  - `bitmaps.h` (icônes top bar héritées du projet d’origine).
+
 ---
 
 ## 1) Principes clés

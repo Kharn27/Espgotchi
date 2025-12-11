@@ -53,7 +53,11 @@ Port **ESP32 CYD (Cheap Yellow Display)** d’**ArduinoGotchi** (émulation Tama
 - Arduino framework
 - `TFT_eSPI`
 - `XPT2046_Touchscreen`
-- Core ArduinoGotchi/TamaLIB + ROM convertie
+- Submodule **TamaLIB** (core ArduinoGotchi) + ROM convertie
+
+### ⚙️ Pré-requis build
+
+- Récupérer le submodule TamaLIB : `git submodule update --init --recursive` (ou équivalent).
 
 ---
 
@@ -64,6 +68,9 @@ Exemple de structure du dossier `firmware/` :
 ```text
 firmware/
   platformio.ini
+  lib/
+    hal_types.h                # Copie de hal_types (TamaLIB)
+    tamalib/                   # Submodule TamaLIB (cpu/hal/hw/tamalib)
   src/
     TamaApp_Headless.cpp      # App principale (instancie les services)
     VideoService.h/.cpp       # Backend vidéo ESP32 CYD (TFT_eSPI + layout)
@@ -75,13 +82,13 @@ firmware/
 
     EspgotchiInput.h/.cpp     # Gestion low-level du touch (XPT2046)
     arduinogotchi_core/
-      tamalib.*               # Core TamaLIB
-      cpu.*                   # CPU ému
-      hw.*                    # Abstraction boutons/LCD/buzzer
-      hal.*                   # Interfaces HAL
-      rom_12bit.h             # ROM P1 convertie
+      espgotchi_tamalib_ext.* # Extensions HAL spécifiques ESPGotchi
+      espgotchi_tama_rom.*    # Wrapper C (PROGMEM) pour la ROM P1 packée
+      rom_12bit.h             # ROM P1 convertie (issue d'ArduinoGotchi)
       bitmaps.h               # Icônes de la topbar
 ```
+
+`hal_types.h` et les headers HAL (fichiers `hal*.h` du sous-module) appartiennent à **TamaLIB** (sous-module `firmware/lib/tamalib`) et conservent leur licence d'origine.
 
 > Les anciens fichiers `EspgotchiInputC.*` et `EspgotchiButtons.*` ont été supprimés au profit d’`InputService` qui encapsule input + injection dans `hw_set_button()`. 
 
@@ -166,6 +173,8 @@ La ROM convertie du Tamagotchi P1 doit être disponible dans :
 ```text
 firmware/src/arduinogotchi_core/rom_12bit.h
 ```
+
+`espgotchi_tama_rom.*` référence ce header pour injecter la ROM packée dans TamaLIB (via le sous-module `firmware/lib/tamalib`).
 
 ---
 

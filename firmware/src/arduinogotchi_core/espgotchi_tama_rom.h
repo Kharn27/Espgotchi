@@ -11,6 +11,7 @@ extern "C" {
  * Pour l’instant : NULL, on recâblera plus tard vers la vraie ROM.
  */
 const u12_t *espgotchi_get_tama_program(void);
+u32_t espgotchi_get_tama_program_word_count(void);
 
 /* Retourne la liste de breakpoints (ou NULL).
  * Pour l’instant, on n’utilise pas de breakpoints côté Espgotchi.
