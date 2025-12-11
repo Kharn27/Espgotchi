@@ -1,7 +1,7 @@
 #ifndef _ESPGOTCHI_TAMA_ROM_H_
 #define _ESPGOTCHI_TAMA_ROM_H_
 
-#include "cpu.h"   // pour u12_t et breakpoint_t
+#include "tamalib/cpu.h"   // pour u12_t et breakpoint_t
 
 #ifdef __cplusplus
 extern "C" {

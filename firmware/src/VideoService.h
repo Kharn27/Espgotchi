@@ -6,10 +6,10 @@
 
 extern "C"
 {
-#include "arduinogotchi_core/tamalib.h"
-#include "arduinogotchi_core/hw.h"
-#include "arduinogotchi_core/hal.h"
-#include "arduinogotchi_core/cpu.h"
+#include "tamalib/tamalib.h"
+#include "tamalib/hw.h"
+#include "tamalib/hal.h"
+#include "tamalib/cpu.h"
 }
 
 class InputService;

@@ -4,9 +4,9 @@
 
 extern "C"
 {
-#include "arduinogotchi_core/tamalib.h"
+#include "tamalib/tamalib.h"
 #include "arduinogotchi_core/espgotchi_tamalib_ext.h"
-#include "arduinogotchi_core/hal.h"
+#include "tamalib/hal.h"
 }
 
 class VideoService;
