@@ -34,27 +34,23 @@ static u8_t g_framerate = DEFAULT_FRAMERATE;
 hal_t *g_hal;
 
 bool_t tamalib_init(const u12_t *program,
-					breakpoint_t *breakpoints,
-					u32_t freq)
+                    breakpoint_t *breakpoints,
+                    u32_t freq)
 {
-	bool_t res = 0;
+    bool_t res = 0;
 
-	/* Pour l’instant, on ignore 'program' et 'breakpoints' et
-	 * on garde le comportement historique : init CPU avec la
-	 * seule fréquence.
-	 *
-	 * TODO: quand on branchera la ROM P1, on passera 'program'
-	 *       et 'breakpoints' à cpu_init() comme dans TamaLIB upstream.
-	 */
-	(void)program;
-	(void)breakpoints;
+    /* On transmet désormais program/breakpoints au CPU, comme dans
+     * l’upstream. Le cœur CPU ne s’en sert pas encore réellement
+     * (décodage via g_program_b12, breakpoints désactivés), donc
+     * le comportement reste identique.
+     */
+    res |= cpu_init(program, breakpoints, freq);
+    res |= hw_init();
 
-	res |= cpu_init(freq);
-	res |= hw_init();
-
-	ts_freq = freq;
-	return res;
+    ts_freq = freq;
+    return res;
 }
+
 
 bool_t tamalib_init_espgotchi(u32_t freq)
 {

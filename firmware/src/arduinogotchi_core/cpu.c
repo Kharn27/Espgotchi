@@ -157,7 +157,7 @@ static u8_t sp;
 /* Flags */
 static u4_t flags;
 
-//static const u12_t *g_program = NULL;
+static const u12_t *g_program = NULL;
 static u4_t memory[MEMORY_SIZE];
 //static u4_t io_memory[MEM_IO_SIZE];
 
@@ -175,7 +175,7 @@ static interrupt_t interrupts[INT_SLOT_NUM] = {
   {0x0, 0x0, 0, 0x02}, // Clock timer
 };
 
-//static breakpoint_t *g_breakpoints = NULL;
+static breakpoint_t *g_breakpoints = NULL;
 
 static u32_t call_depth = 0;
 
@@ -1883,10 +1883,16 @@ void cpu_reset(void)
   cpu_sync_ref_timestamp();
 }
 
-bool_t cpu_init(u32_t freq)
+bool_t cpu_init(const u12_t *program, breakpoint_t *breakpoints, u32_t freq)
 {
-  //g_program = program;
-  //g_breakpoints = breakpoints;
+  /* On enregistre les pointeurs comme dans l’upstream,
+   * mais pour l’instant le cœur CPU ne les utilise pas encore :
+   * - le décodage de la ROM passe toujours par g_program_b12
+   * - le code de breakpoints reste commenté.
+   */
+  g_program = program;
+  g_breakpoints = breakpoints;
+
   ts_freq = freq;
   cpu_reset();
   return 0;

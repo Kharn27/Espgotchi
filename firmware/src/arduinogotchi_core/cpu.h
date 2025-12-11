@@ -149,9 +149,8 @@ void cpu_reset(void);
 
 //u8_t cpu_get_max_number(void);
 
-//bool_t cpu_init(breakpoint_t *breakpoints, u32_t freq);
+bool_t cpu_init(const u12_t *program, breakpoint_t *breakpoints, u32_t freq);
 
-bool_t cpu_init(u32_t freq);
 void cpu_release(void);
 
 int cpu_step(void);
