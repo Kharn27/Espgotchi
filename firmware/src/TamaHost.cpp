@@ -2,6 +2,7 @@
 #include "VideoService.h"
 #include "InputService.h"
 #include "esp_timer.h"
+#include <esp_heap_caps.h>
 #include <stdarg.h>
 
 extern "C"
@@ -227,17 +228,34 @@ int TamaHost::handleHandler()
 
 void *TamaHost::hal_malloc(u32_t size)
 {
-  // Pour l’instant on n’utilise pas les breakpoints,
-  // donc on peut renvoyer NULL et tamalib ne devrait
-  // pas appeler cette fonction dans notre config.
-  (void)size;
-  return NULL;
+  if (size == 0)
+  {
+    return nullptr;
+  }
+
+  // Essaye d'allouer en PSRAM si disponible, sinon bascule sur le heap classique.
+  void *ptr = heap_caps_malloc(size, MALLOC_CAP_SPIRAM | MALLOC_CAP_8BIT);
+  if (ptr == nullptr)
+  {
+    ptr = heap_caps_malloc(size, MALLOC_CAP_DEFAULT);
+  }
+
+  if (ptr == nullptr)
+  {
+    Serial.printf("[HAL][malloc] Échec d'allocation de %u octets.\n", size);
+  }
+
+  return ptr;
 }
 
 void TamaHost::hal_free(void *ptr)
 {
-  // Rien à faire tant qu’on ne fait pas d’alloc dynamique via le HAL
-  (void)ptr;
+  if (!ptr)
+  {
+    return;
+  }
+
+  heap_caps_free(ptr);
 }
 
 bool_t TamaHost::hal_is_log_enabled(log_level_t level)
@@ -257,7 +275,14 @@ bool_t TamaHost::hal_is_log_enabled(log_level_t level)
 
 void TamaHost::hal_halt()
 {
-  // rien de spécial
+  Serial.println("[HAL][halt] Arrêt demandé par TamaLIB, le système se met en pause.");
+  Serial.flush();
+
+  // Boucle de sécurité pour éviter toute exécution ultérieure.
+  while (true)
+  {
+    delay(1000);
+  }
 }
 
 void TamaHost::hal_log(log_level_t level, char *buff, ...)
