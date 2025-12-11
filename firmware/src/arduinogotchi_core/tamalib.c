@@ -58,11 +58,18 @@ bool_t tamalib_init(const u12_t *program,
 
 bool_t tamalib_init_espgotchi(u32_t freq)
 {
-	   /* Espgotchi n’a pour l’instant pas de ROM explicite à fournir.
-     * On utilise donc l’API upstream avec program=NULL, breakpoints=NULL,
-     * mais la logique interne reste la même (init CPU avec 'freq').
-     */
-    return tamalib_init(NULL, NULL, freq);
+	/* On passe désormais explicitement un programme et une liste
+	 * de breakpoints à l’API TamaLIB, même si pour l’instant
+	 * ce sont juste des NULL.
+	 *
+	 * Le comportement reste identique, car notre tamalib_init()
+	 * ignore encore 'program' et 'breakpoints' et continue
+	 * d’initialiser le CPU uniquement avec 'freq'.
+	 */
+	const u12_t *program = espgotchi_get_tama_program();
+	breakpoint_t *breakpoints = espgotchi_get_tama_breakpoints();
+
+	return tamalib_init(program, breakpoints, freq);
 }
 
 /* ---- API TamaLIB "officielle" restaurée ---- */
