@@ -4,10 +4,16 @@
 #include "esp_timer.h"
 #include <stdarg.h>
 
+extern "C"
+{
+#include "arduinogotchi_core/cpu.h"
+}
+
 // pour le bouton debug centre écran
 extern void printHeapStats();
 
-// timeMult global pour VideoService + time scaling
+// timeMult global : facteur de vitesse (x1, x2, x4, x8) pour TamaLIB
+// et affichage de "SPD xN" dans la top bar.
 uint8_t timeMult = 1;
 
 TamaHost *TamaHost::s_instance = nullptr;
@@ -36,8 +42,6 @@ void TamaHost::begin(uint8_t displayFramerate, uint32_t startTimestampUs)
 {
   s_instance = this;
 
-  _baseRealUs = (uint64_t)esp_timer_get_time();
-  _baseVirtualUs = 0;
   timeMult = 1;
 
   // On mémorise la fréquence utilisée pour TamaLIB (chez toi: 1_000_000 = us)

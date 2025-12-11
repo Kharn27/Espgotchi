@@ -12,7 +12,7 @@ static constexpr uint16_t LCD_COLOR_BG = TFT_LIGHTGREY;
 static constexpr uint16_t LCD_COLOR_PIXEL = TFT_BLACK;
 static constexpr uint16_t LCD_COLOR_FRAME = TFT_DARKGREY;
 
-// timeMult est défini dans TamaApp
+// timeMult est défini dans TamaHost (facteur de vitesse / affichage SPD)
 extern uint8_t timeMult;
 
 VideoService::VideoService()

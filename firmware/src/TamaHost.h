@@ -7,13 +7,12 @@ extern "C"
 #include "arduinogotchi_core/tamalib.h"
 #include "arduinogotchi_core/espgotchi_tamalib_ext.h"
 #include "arduinogotchi_core/hal.h"
-#include "arduinogotchi_core/cpu.h"      // <-- ajouter ça
 }
 
 class VideoService;
 class InputService;
 
-// Hôte TamaLIB : gère le temps virtuel, le HAL et le handler()
+// Hôte TamaLIB : gère le HAL, la boucle d’émulation et le handler()
 class TamaHost
 {
 public:
@@ -28,9 +27,6 @@ public:
 private:
   VideoService &_video;
   InputService &_input;
-
-  uint64_t _baseRealUs = 0;
-  uint64_t _baseVirtualUs = 0;
 
   uint32_t _lastAliveLogMs = 0;
 
