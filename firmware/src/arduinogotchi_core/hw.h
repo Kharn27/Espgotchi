@@ -33,10 +33,12 @@ typedef enum {
 } btn_state_t;
 
 typedef enum {
-	BTN_LEFT = 0,
-	BTN_MIDDLE,
-	BTN_RIGHT,
+    BTN_LEFT = 0,
+    BTN_MIDDLE,
+    BTN_RIGHT,
+    BTN_TAP,     // aligné sur l'upstream
 } button_t;
+
 
 
 #ifdef __cplusplus

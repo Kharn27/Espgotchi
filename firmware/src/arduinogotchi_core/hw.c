@@ -25,15 +25,17 @@
 /* SEG -> LCD mapping */
 const static u8_t seg_pos[40] = {0, 1, 2, 3, 4, 5, 6, 7, 32, 8, 9, 10, 11, 12 ,13 ,14, 15, 33, 34, 35, 31, 30, 29, 28, 27, 26, 25, 24, 36, 23, 22, 21, 20, 19, 18, 17, 16, 37, 38, 39};
 
-
 bool_t hw_init(void)
 {
-	/* Buttons are active LOW */
-	cpu_set_input_pin(PIN_K00, PIN_STATE_HIGH);
-	cpu_set_input_pin(PIN_K01, PIN_STATE_HIGH);
-	cpu_set_input_pin(PIN_K02, PIN_STATE_HIGH);
-	return 0;
+    /* Buttons/Tap sensor are active LOW */
+    cpu_set_input_pin(PIN_K00, PIN_STATE_HIGH);
+    cpu_set_input_pin(PIN_K01, PIN_STATE_HIGH);
+    cpu_set_input_pin(PIN_K02, PIN_STATE_HIGH);
+    cpu_set_input_pin(PIN_K03, PIN_STATE_HIGH);   // réactivé
+
+    return 0;
 }
+
 
 void hw_release(void)
 {
@@ -65,75 +67,43 @@ void hw_set_lcd_pin(u8_t seg, u8_t com, u8_t val)
 
 void hw_set_button(button_t btn, btn_state_t state)
 {
-	pin_state_t pin_state = (state == BTN_STATE_PRESSED) ? PIN_STATE_LOW : PIN_STATE_HIGH;
+    pin_state_t pin_state = (state == BTN_STATE_PRESSED) ? PIN_STATE_LOW : PIN_STATE_HIGH;
 
-	switch (btn) {
-		case BTN_LEFT:
-			cpu_set_input_pin(PIN_K02, pin_state);
-			break;
-
-		case BTN_MIDDLE:
-			cpu_set_input_pin(PIN_K01, pin_state);
-			break;
-
-		case BTN_RIGHT:
-			cpu_set_input_pin(PIN_K00, pin_state);
-			break;
-	}
+    switch (btn) {
+    case BTN_TAP:
+        cpu_set_input_pin(PIN_K03, pin_state);
+        break;
+    case BTN_LEFT:
+        cpu_set_input_pin(PIN_K02, pin_state);
+        break;
+    case BTN_MIDDLE:
+        cpu_set_input_pin(PIN_K01, pin_state);
+        break;
+    case BTN_RIGHT:
+        cpu_set_input_pin(PIN_K00, pin_state);
+        break;
+    }
 }
 
-const static uint16_t snd_freq[]= {4096,3279,2731,2341,2048,1638,1365,1170};
+
 void hw_set_buzzer_freq(u4_t freq)
 {
-  if (freq>7) return;
-  g_hal->set_frequency(snd_freq[freq]);
-	/*u32_t snd_freq = 0;
+    u32_t snd_freq = 0;
 
-	switch (freq) {
-		case 0:
-			// 4096.0 Hz 
-			snd_freq = 4096;
-			break;
+    switch (freq) {
+    case 0: /* 4096.0 Hz */ snd_freq = 40960; break;
+    case 1: /* 3276.8 Hz */ snd_freq = 32768; break;
+    case 2: /* 2730.7 Hz */ snd_freq = 27307; break;
+    case 3: /* 2340.6 Hz */ snd_freq = 23406; break;
+    case 4: /* 2048.0 Hz */ snd_freq = 20480; break;
+    case 5: /* 1638.4 Hz */ snd_freq = 16384; break;
+    case 6: /* 1365.3 Hz */ snd_freq = 13653; break;
+    case 7: /* 1170.3 Hz */ snd_freq = 11703; break;
+    }
 
-		case 1:
-			// 3276.8 Hz 
-			snd_freq = 3279;
-			break;
-
-		case 2:
-			// 2730.7 Hz 
-			snd_freq = 2731;
-			break;
-
-		case 3:
-			// 2340.6 Hz 
-			snd_freq = 2341;
-			break;
-
-		case 4:
-			// 2048.0 Hz 
-			snd_freq = 2048;
-			break;
-
-		case 5:
-			// 1638.4 Hz 
-			snd_freq = 1638;
-			break;
-
-		case 6:
-			// 1365.3 Hz 
-			snd_freq = 1365;
-			break;
-
-		case 7:
-			// 1170.3 Hz 
-			snd_freq = 1170;
-			break;
-	}
-
-	if (snd_freq != 0) { 
-		g_hal->set_frequency(snd_freq);
-	}*/
+    if (snd_freq != 0) {
+        g_hal->set_frequency(snd_freq);
+    }
 }
 
 void hw_enable_buzzer(bool_t en)

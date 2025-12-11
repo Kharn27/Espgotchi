@@ -41,7 +41,8 @@ void TamaHost::begin(uint8_t displayFramerate, uint32_t startTimestampUs) {
 
   tamalib_register_hal(&s_hal);
   tamalib_set_framerate(displayFramerate);
-  tamalib_init(startTimestampUs);
+  tamalib_init_espgotchi(startTimestampUs);
+
 
   Serial.println("[TamaHost] HAL registered, TamaLIB started.");
 }
@@ -107,10 +108,14 @@ void TamaHost::handleSetLcdIcon(u8_t icon, bool_t val) {
   _video.setLcdIcon(icon, val);
 }
 
-void TamaHost::handleSetFrequency(u32_t freq) {
-  // délègue à la glue audio dans TamaApp
-  extern void espgotchi_hal_set_frequency(u32_t freq);
-  espgotchi_hal_set_frequency(freq);
+void TamaHost::handleSetFrequency(u32_t freq_dHz)
+{
+    // TamaLIB envoie une fréquence en décis-Hz (dHz).
+    // On convertit en Hz pour la couche audio ESP.
+    extern void espgotchi_hal_set_frequency(u32_t freqHz);
+
+    u32_t freqHz = freq_dHz / 10;  // 40960 dHz -> 4096 Hz, etc.
+    espgotchi_hal_set_frequency(freqHz);
 }
 
 void TamaHost::handlePlayFrequency(bool_t en) {
