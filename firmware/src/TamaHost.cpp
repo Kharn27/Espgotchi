@@ -6,7 +6,7 @@
 
 extern "C"
 {
-#include "arduinogotchi_core/cpu.h"
+#include "tamalib/cpu.h"
 }
 
 // pour le bouton debug centre écran

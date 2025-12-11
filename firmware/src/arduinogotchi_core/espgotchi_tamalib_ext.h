@@ -1,7 +1,8 @@
 #ifndef _ESPGOTCHI_TAMALIB_EXT_H_
 #define _ESPGOTCHI_TAMALIB_EXT_H_
 
-#include "tamalib.h"
+#include "tamalib/tamalib.h"
+#include "tamalib/cpu.h"
 #include "espgotchi_tama_rom.h"
 
 #ifdef __cplusplus
