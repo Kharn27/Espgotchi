@@ -22,7 +22,7 @@
 
 #include "hal.h"
 
-#define MEMORY_SIZE        0x140 // MEM_RAM_SIZE + MEM_IO_SIZE
+#define MEMORY_SIZE        0x140 // Taille du buffer 'memory[]' (2 nibbles par entrée), soit MEM_RAM_SIZE/2
 
 #define MEM_RAM_ADDR        0x000
 #define MEM_RAM_SIZE        0x280
@@ -36,8 +36,7 @@
 #define MEM_DISPLAY2_SIZE     0x050
 
 #define MEM_IO_ADDR       0xF00
-//#define MEM_IO_ADDR_OFS   0xBE0
-#define MEM_IO_ADDR_OFS   0xF00
+#define MEM_IO_ADDR_OFS   0xBE0
 #define MEM_IO_SIZE       0x080
 
 typedef struct breakpoint {

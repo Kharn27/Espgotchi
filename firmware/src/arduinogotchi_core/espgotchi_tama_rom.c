@@ -1,4 +1,11 @@
 #include "espgotchi_tama_rom.h"
+
+/* rom_12bit.h utilise PROGMEM (Arduino) qui n'est pas défini
+ * dans ce TU en C pur. On le neutralise ici.
+ */
+#ifndef PROGMEM
+#define PROGMEM
+#endif
 #include "rom_12bit.h"  // contient g_program_b12 = ROM P1 packée en 12 bits
 
 /* NOTE:
