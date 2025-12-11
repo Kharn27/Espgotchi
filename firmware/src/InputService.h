@@ -5,7 +5,7 @@
 #include "UiLayout.h"
 
 extern "C" {
-#include "arduinogotchi_core/hw.h"
+#include "hw.h"
 }
 
 enum class LogicalButton : uint8_t {
