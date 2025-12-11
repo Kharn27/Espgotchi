@@ -32,6 +32,7 @@ hal_t TamaHost::s_hal = {
 TamaHost::TamaHost(VideoService &video, InputService &input)
     : _video(video), _input(input) {}
 
+    
 void TamaHost::begin(uint8_t displayFramerate, uint32_t startTimestampUs) {
   s_instance = this;
 
