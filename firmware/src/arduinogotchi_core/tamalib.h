@@ -51,10 +51,18 @@ typedef enum {
 /* API TamaLIB "officielle" (sauf init pour l'instant) */
 void   tamalib_release(void);
 
-/* Init simplifiée actuelle d'Espgotchi
- * NOTE: on gardera ce prototype tant qu’on n’a pas recâblé la ROM.
+/* Init TamaLIB upstream :
+ * - program     : pointeur vers la ROM P1 (tableau de u12_t)
+ * - breakpoints : liste de breakpoints (ou NULL)
+ * - freq        : fréquence des timestamps (ex: 1000000 pour us)
+ *
+ * NOTE: pour l’instant, l’implémentation locale ignore 'program' et
+ * 'breakpoints' et se comporte comme avant (compatibilité Espgotchi).
+ * 'tamalib_init_espgotchi()' sera utilisé côté firmware.
  */
-bool_t tamalib_init(u32_t freq);
+bool_t tamalib_init(const u12_t *program,
+                    breakpoint_t *breakpoints,
+                    u32_t freq);
 
 void   tamalib_set_framerate(u8_t framerate);
 u8_t   tamalib_get_framerate(void);
