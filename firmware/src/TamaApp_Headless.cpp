@@ -69,7 +69,7 @@ void setup()
 
   // Audio
   audio.begin();
-
+audio.setVolume(128);
   // petit test son (optionnel)
   audio.setFrequency(880);
   audio.play();
