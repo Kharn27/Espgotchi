@@ -23,7 +23,7 @@
 #include "hal.h"
 
 /* NB: on garde ton framerate par défaut à 3 fps */
-#define DEFAULT_FRAMERATE 3 // fps
+#define DEFAULT_FRAMERATE 30 // fps
 
 static exec_mode_t exec_mode = EXEC_MODE_RUN;
 static u32_t step_depth = 0;
@@ -51,24 +51,6 @@ bool_t tamalib_init(const u12_t *program,
     return res;
 }
 
-
-bool_t tamalib_init_espgotchi(u32_t freq)
-{
-	/* On passe désormais explicitement un programme et une liste
-	 * de breakpoints à l’API TamaLIB, même si pour l’instant
-	 * ce sont juste des NULL.
-	 *
-	 * Le comportement reste identique, car notre tamalib_init()
-	 * ignore encore 'program' et 'breakpoints' et continue
-	 * d’initialiser le CPU uniquement avec 'freq'.
-	 */
-	const u12_t *program = espgotchi_get_tama_program();
-	breakpoint_t *breakpoints = espgotchi_get_tama_breakpoints();
-
-	return tamalib_init(program, breakpoints, freq);
-}
-
-/* ---- API TamaLIB "officielle" restaurée ---- */
 
 void tamalib_release(void)
 {
@@ -173,31 +155,3 @@ void tamalib_mainloop(void)
 	}
 }
 
-/* ---- Helper Espgotchi: boucle "step-by-step" ---- */
-
-void tamalib_mainloop_step_by_step(void)
-{
-	timestamp_t ts;
-
-	if (!g_hal->handler())
-	{
-
-		// Variante: exécuter seulement en mode RUN
-		if (exec_mode == EXEC_MODE_RUN)
-		{
-			if (cpu_step())
-			{
-				exec_mode = EXEC_MODE_PAUSE;
-				step_depth = cpu_get_depth();
-			}
-		}
-
-		/* Update the screen @ g_framerate fps */
-		ts = g_hal->get_timestamp();
-		if (ts - screen_ts >= ts_freq / g_framerate)
-		{
-			screen_ts = ts;
-			g_hal->update_screen();
-		}
-	}
-}

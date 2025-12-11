@@ -66,11 +66,6 @@ bool_t tamalib_init(const u12_t *program,
 
 void   tamalib_set_framerate(u8_t framerate);
 u8_t   tamalib_get_framerate(void);
-/* Init spécifique Espgotchi (wrapper autour de tamalib_init)
- * Permettra plus tard de faire évoluer tamalib_init() vers la signature upstream
- * sans casser l’API du projet.
- */
-bool_t tamalib_init_espgotchi(u32_t freq);
 void   tamalib_register_hal(hal_t *hal);
 void   tamalib_set_exec_mode(exec_mode_t mode);
 
@@ -80,9 +75,6 @@ void   tamalib_set_exec_mode(exec_mode_t mode);
  */
 void   tamalib_step(void);
 void   tamalib_mainloop(void);
-
-/* Helper spécifique Espgotchi : boucle step-by-step à 3 fps */
-void   tamalib_mainloop_step_by_step(void);
 
 #ifdef __cplusplus
 }

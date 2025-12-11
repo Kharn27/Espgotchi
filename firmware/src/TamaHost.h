@@ -5,6 +5,7 @@
 extern "C"
 {
 #include "arduinogotchi_core/tamalib.h"
+#include "arduinogotchi_core/espgotchi_tamalib_ext.h"  // <-- ajouter ça
 #include "arduinogotchi_core/hal.h"
 }
 
@@ -35,6 +36,9 @@ private:
   // état handler
   uint8_t _lastTouchDown = 0;
   uint8_t _lastHeldLogged = 0;
+
+  u32_t _tamaTsFreq;               // fréquence de référence passée à tamalib_init_* (ex: 1_000_000 pour us)
+  timestamp_t _lastScreenUpdateTs; // dernier timestamp où l’on a rafraîchi l’écran
 
   // time scaling
   void setTimeMult(uint8_t newMult);

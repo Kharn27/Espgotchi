@@ -40,6 +40,10 @@ void TamaHost::begin(uint8_t displayFramerate, uint32_t startTimestampUs) {
   _baseVirtualUs = 0;
   timeMult = 1;
 
+  // On mémorise la fréquence utilisée pour TamaLIB (chez toi: 1_000_000 = us)
+  _tamaTsFreq = startTimestampUs;
+  _lastScreenUpdateTs = 0;
+
   tamalib_register_hal(&s_hal);
   tamalib_set_framerate(displayFramerate);
   tamalib_init_espgotchi(startTimestampUs);
@@ -48,16 +52,52 @@ void TamaHost::begin(uint8_t displayFramerate, uint32_t startTimestampUs) {
   Serial.println("[TamaHost] HAL registered, TamaLIB started.");
 }
 
-void TamaHost::loopOnce() {
-  tamalib_mainloop_step_by_step();
+// void TamaHost::loopOnce() {
+//   tamalib_mainloop_step_by_step();
 
-  // log "alive" toutes les 2s
+//   // log "alive" toutes les 2s
+//   uint32_t nowMs = millis();
+//   if (nowMs - _lastAliveLogMs > 2000) {
+//     _lastAliveLogMs = nowMs;
+//     Serial.println("[Espgotchi] mainloop alive.");
+//   }
+// }
+
+void TamaHost::loopOnce() {
+  // Équivalent à l’ancien tamalib_mainloop_step_by_step(), mais exprimé
+  // uniquement via l’API publique TamaLIB + notre HAL Espgotchi.
+
+  // 1. Handler d’événements (boutons, etc.) – même logique que g_hal->handler()
+  if (!hal_handler()) {
+    // 2. On laisse TamaLIB décider quoi faire (RUN/PAUSE/STEP…) via tamalib_step().
+    //    Si exec_mode == PAUSE, tamalib_step() ne fera rien – comme avant.
+    tamalib_step();
+
+    // 3. Rafraîchissement de l’écran à g_framerate fps
+    timestamp_t ts = getTimestamp(); // équivalent à hal_get_timestamp()
+
+    // Sécurité : si jamais _tamaTsFreq vaut 0 ou framerate vaut 0, on évite les divisions foireuses
+    u32_t freq = _tamaTsFreq ? _tamaTsFreq : 1000000u;
+    u8_t fr = tamalib_get_framerate();
+    if (fr == 0) {
+      fr = 1;
+    }
+
+    if (ts - _lastScreenUpdateTs >= freq / fr) {
+      _lastScreenUpdateTs = ts;
+      hal_update_screen();
+    }
+  }
+
+  // log "alive" toutes les 2s – inchangé
   uint32_t nowMs = millis();
   if (nowMs - _lastAliveLogMs > 2000) {
     _lastAliveLogMs = nowMs;
     Serial.println("[Espgotchi] mainloop alive.");
   }
 }
+
+
 
 // -------- time scaling --------
 
