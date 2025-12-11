@@ -133,7 +133,7 @@ typedef struct {
 void cpu_add_bp(breakpoint_t **list, u13_t addr);
 void cpu_free_bp(breakpoint_t **list);
 
-//void cpu_set_speed(u8_t speed);
+void cpu_set_speed(u8_t speed);
 
 void cpu_get_state(cpu_state_t *cpustate);
 void cpu_set_state(cpu_state_t *cpustate);

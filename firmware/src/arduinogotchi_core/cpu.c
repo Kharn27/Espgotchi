@@ -187,7 +187,7 @@ static u8_t prog_timer_rld = 0;
 
 static u32_t tick_counter = 0;
 static u32_t ts_freq;
-//static u8_t speed_ratio = 0;
+static u8_t speed_ratio = 0;
 static timestamp_t ref_ts;
 
 /*
@@ -252,6 +252,11 @@ void cpu_set_speed(u8_t speed)
 {
   speed_ratio = speed;
 }*/
+/* Nouvelle implémentation active de cpu_set_speed() */
+void cpu_set_speed(u8_t speed)
+{
+  speed_ratio = speed;
+}
 
 
 void cpu_get_state(cpu_state_t *cpustate)
