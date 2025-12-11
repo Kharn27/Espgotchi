@@ -56,6 +56,11 @@ const u12_t *espgotchi_get_tama_program(void)
     return s_program;
 }
 
+u32_t espgotchi_get_tama_program_word_count(void)
+{
+    return ESPGOTCHI_PROGRAM_WORDS;
+}
+
 breakpoint_t *espgotchi_get_tama_breakpoints(void)
 {
     // Pas de breakpoints gérés côté Espgotchi pour l’instant.
