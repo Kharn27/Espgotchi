@@ -3,10 +3,10 @@
 extern "C"
 {
 #include "arduinogotchi_core/bitmaps.h"
-#include "tamalib/tamalib.h"
-#include "tamalib/hw.h"
-#include "tamalib/cpu.h"
-#include "tamalib/hal.h"
+#include "tamalib.h"
+#include "hw.h"
+#include "cpu.h"
+#include "hal.h"
 }
 
 #include "VideoService.h"

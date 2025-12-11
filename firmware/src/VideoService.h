@@ -6,10 +6,10 @@
 
 extern "C"
 {
-#include "tamalib/tamalib.h"
-#include "tamalib/hw.h"
-#include "tamalib/hal.h"
-#include "tamalib/cpu.h"
+#include "tamalib.h"
+#include "hw.h"
+#include "hal.h"
+#include "cpu.h"
 }
 
 class InputService;

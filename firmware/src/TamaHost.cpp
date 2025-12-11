@@ -6,7 +6,7 @@
 
 extern "C"
 {
-#include "tamalib/cpu.h"
+#include "cpu.h"
 }
 
 // pour le bouton debug centre écran
