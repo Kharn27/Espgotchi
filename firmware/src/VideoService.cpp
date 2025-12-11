@@ -41,11 +41,11 @@ void VideoService::initDisplay()
 void VideoService::begin()
 {
   memset(_matrix, 0, sizeof(_matrix));
-  memset(_prevMatrix, 0, sizeof(_prevMatrix));  // NEW
+  memset(_prevMatrix, 0, sizeof(_prevMatrix)); // NEW
   memset(_icons, 0, sizeof(_icons));
   _lastRenderRealUs = 0;
   _lastMatrixHash = 0;
-  _firstMatrixRender = true;                    // NEW
+  _firstMatrixRender = true; // NEW
 }
 
 void VideoService::clearScreen()
@@ -157,7 +157,7 @@ void VideoService::renderMatrixToTft()
     {
       uint8_t mask = 0b10000000 >> (x % 8);
 
-      bool curOn  = (_matrix[y][x / 8]     & mask) != 0;
+      bool curOn = (_matrix[y][x / 8] & mask) != 0;
       bool prevOn = (_prevMatrix[y][x / 8] & mask) != 0;
 
       // Pas de changement → on ne touche pas au TFT
@@ -176,7 +176,6 @@ void VideoService::renderMatrixToTft()
   // Sauvegarde de l'état courant pour la prochaine frame
   memcpy(_prevMatrix, _matrix, sizeof(_matrix));
 }
-
 
 void VideoService::drawMonoBitmap16x9(int x, int y, const uint8_t *data, int scale)
 {
@@ -309,14 +308,14 @@ void VideoService::renderTouchButtonsBar()
 {
   const int barH = BOTTOM_BAR_H;
   const int barY = SCREEN_H - barH;
-  const int count = 3;
+  const int count = 4;
   const int slotW = SCREEN_W / count;
 
   // On lit l'état via InputService (si dispo)
   LogicalButton held = LogicalButton::NONE;
   if (_input)
   {
-    held = _input->getHeld(); // LEFT / OK / RIGHT / NONE
+    held = _input->getHeld(); // LEFT / OK / RIGHT / LR / NONE
   }
 
   // Anti-flicker simple : redraw seulement si changement
@@ -338,7 +337,8 @@ void VideoService::renderTouchButtonsBar()
     bool isActive =
         (held == LogicalButton::LEFT && i == 0) ||
         (held == LogicalButton::OK && i == 1) ||
-        (held == LogicalButton::RIGHT && i == 2);
+        (held == LogicalButton::RIGHT && i == 2) ||
+        (held == LogicalButton::LR && i == 3);
 
     uint16_t fill = isActive ? TFT_DARKGREY : TFT_BLACK;
 
@@ -349,9 +349,12 @@ void VideoService::renderTouchButtonsBar()
     _tft.setTextSize(2);
 
     const char *label = (i == 0) ? "L" : (i == 1) ? "OK"
-                                                  : "R";
+                                     : (i == 2)   ? "R"
+                                                  : "LR";
 
-    int tx = x + slotW / 2 - ((i == 1) ? 12 : 6);
+    int charCount = (i == 1 || i == 3) ? 2 : 1; // "OK" et "LR" sur 2 chars
+    int tx = x + slotW / 2 - (charCount == 2 ? 12 : 6);
+    // int tx = x + slotW / 2 - ((i == 1) ? 12 : 6);
     int ty = barY + barH / 2 - 8;
 
     _tft.setCursor(tx, ty);
@@ -397,7 +400,6 @@ void VideoService::renderSpeedButtonTopbar()
   _tft.print("SPD x");
   _tft.print(timeMult);
 }
-
 
 void VideoService::updateScreen()
 {
