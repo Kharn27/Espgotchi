@@ -110,6 +110,10 @@ void TamaHost::setTimeMult(uint8_t newMult)
   // Informe le CPU TamaLIB du nouveau ratio de vitesse.
   // 1 = vitesse normale, 2 = x2, 4 = x4, 8 = x8, etc.
   cpu_set_speed(timeMult);
+
+  // Réaligne la base de temps pour éviter de "rattraper" le temps gagné
+  // en vitesse x2/x4/x8 après un retour à x1.
+  cpu_sync_ref_timestamp();
 }
 
 timestamp_t TamaHost::getTimestamp()
