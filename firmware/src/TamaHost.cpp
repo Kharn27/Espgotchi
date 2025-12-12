@@ -8,6 +8,7 @@
 extern "C"
 {
 #include "cpu.h"
+#include "arduinogotchi_core/espgotchi_state.h"
 }
 
 // pour le bouton debug centre écran
@@ -198,6 +199,10 @@ int TamaHost::handleHandler()
   if (_input.consumeTap(LogicalButton::DEBUG_CENTER))
   {
     printHeapStats();
+
+    espgotchi_logical_state_t logicalState;
+    espgotchi_read_logical_state(&logicalState);
+    espgotchi_debug_dump_state(&logicalState);
   }
 
   // 4) log HELD propre (on utilise maintenant LogicalButton)
