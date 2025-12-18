@@ -35,6 +35,11 @@ void espgotchi_read_logical_state(espgotchi_logical_state_t *out);
 /* Debug helper that logs the current logical state */
 void espgotchi_debug_dump_state(const espgotchi_logical_state_t *st);
 
+// Optionnel : API de debug pour contrôler les dumps RAM
+void espgotchi_state_reset_snapshot(void);
+void espgotchi_state_dump_ram_range(uint16_t start, uint16_t end);
+
+
 #ifdef __cplusplus
 }
 #endif

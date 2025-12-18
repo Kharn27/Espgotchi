@@ -173,3 +173,40 @@ void espgotchi_debug_dump_state(const espgotchi_logical_state_t *st)
     state_log("[Espgotchi][state] clock=%02u:%02u:%02u paused=%u",
               st->pet_hour, st->pet_minute, st->pet_second, st->is_paused);
 }
+
+void espgotchi_state_reset_snapshot(void)
+{
+    s_has_snapshot = 0;
+}
+
+// Dump ciblé d'une plage [start, end)
+void espgotchi_state_dump_ram_range(uint16_t start, uint16_t end)
+{
+    if (start >= end || end > MEM_RAM_SIZE)
+        return;
+
+    u8_t current[P1_RAM_MAX];
+
+    for (uint16_t addr = 0; addr < P1_RAM_MAX; ++addr)
+        current[addr] = p1_ram_read(addr);
+
+    if (!s_has_snapshot) {
+        memcpy(s_last_snapshot, current, P1_RAM_MAX);
+        s_has_snapshot = 1;
+        state_log("[Espgotchi][state] RAM snapshot initialised (custom range)");
+        return;
+    }
+
+    state_log("---- RAM diff dump (0x%03X..0x%03X) ----",
+              (unsigned int)start, (unsigned int)(end - 1));
+
+    for (uint16_t addr = start; addr < end; ++addr) {
+        if (current[addr] != s_last_snapshot[addr]) {
+            state_log("[RAM] addr=0x%03X: 0x%X -> 0x%X",
+                      addr, s_last_snapshot[addr], current[addr]);
+        }
+    }
+
+    memcpy(s_last_snapshot, current, P1_RAM_MAX);
+}
+
