@@ -1,6 +1,6 @@
 #pragma once
 
-#include "hal_types.h"
+#include "../../lib/hal_types.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -25,6 +25,7 @@ typedef struct {
     /* Internal Vpet clock */
     u8_t pet_hour;   /* 0..23 or 0..12 depending on ROM */
     u8_t pet_minute; /* 0..59 */
+    u8_t pet_second; /* 0..59 */
     u8_t is_paused;  /* boolean flag */
 } espgotchi_logical_state_t;
 
