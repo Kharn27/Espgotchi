@@ -183,6 +183,19 @@ int TamaHost::handleHandler()
   // 1) input -> hw_set_button()
   _input.update();
 
+  // Sélection / cycling des plages de dump RAM
+  static size_t s_dumpRangeIndex = 0;
+  static const struct
+  {
+    uint16_t start;
+    uint16_t end;
+  } kDumpRanges[] = {
+      {0x0000, 0x0080},
+      {0x0080, 0x0100},
+      {0x0100, 0x0180},
+  };
+  const size_t kDumpRangeCount = sizeof(kDumpRanges) / sizeof(kDumpRanges[0]);
+
   // 2) bouton SPD (tap logique géré par InputService)
   if (_input.consumeTap(LogicalButton::SPEED))
   {
@@ -200,9 +213,38 @@ int TamaHost::handleHandler()
   {
     printHeapStats();
 
+    LogicalButton heldForDebug = _input.getHeld();
+
+    if (heldForDebug == LogicalButton::LEFT)
+    {
+      s_dumpRangeIndex = (s_dumpRangeIndex + kDumpRangeCount - 1) % kDumpRangeCount;
+      espgotchi_state_reset_snapshot();
+      Serial.printf("[Espgotchi][state] Dump range -- : 0x%03X..0x%03X (snapshot reset)\n",
+                    kDumpRanges[s_dumpRangeIndex].start,
+                    kDumpRanges[s_dumpRangeIndex].end - 1);
+    }
+    else if (heldForDebug == LogicalButton::RIGHT)
+    {
+      s_dumpRangeIndex = (s_dumpRangeIndex + 1) % kDumpRangeCount;
+      espgotchi_state_reset_snapshot();
+      Serial.printf("[Espgotchi][state] Dump range ++ : 0x%03X..0x%03X (snapshot reset)\n",
+                    kDumpRanges[s_dumpRangeIndex].start,
+                    kDumpRanges[s_dumpRangeIndex].end - 1);
+    }
+    else if (heldForDebug == LogicalButton::OK)
+    {
+      espgotchi_state_reset_snapshot();
+      Serial.printf("[Espgotchi][state] Snapshot reset for range 0x%03X..0x%03X\n",
+                    kDumpRanges[s_dumpRangeIndex].start,
+                    kDumpRanges[s_dumpRangeIndex].end - 1);
+    }
+
     espgotchi_logical_state_t logicalState;
     espgotchi_read_logical_state(&logicalState);
     espgotchi_debug_dump_state(&logicalState);
+
+    espgotchi_state_dump_ram_range(kDumpRanges[s_dumpRangeIndex].start,
+                                   kDumpRanges[s_dumpRangeIndex].end);
   }
 
   // 4) log HELD propre (on utilise maintenant LogicalButton)
